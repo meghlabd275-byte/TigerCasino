@@ -1,0 +1,216 @@
+.container {
+  width: 100%;
+}
+
+.inputWrapper {
+  display: flex;
+  align-items: center;
+  background: var(--color-surface);
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  transition: all var(--transition-base);
+  overflow: hidden;
+}
+
+.inputWrapper:focus-within {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.2);
+}
+
+.inputWrapper.error {
+  border-color: var(--color-error);
+}
+
+.inputWrapper.error:focus-within {
+  box-shadow: 0 0 0 3px rgba(255, 71, 87, 0.2);
+}
+
+.inputWrapper.valid {
+  border-color: var(--color-success);
+}
+
+.inputWrapper.type-phone {
+  /* Phone mode specific styles */
+}
+
+.inputWrapper.type-email {
+  /* Email mode specific styles */
+}
+
+.countrySelector {
+  position: relative;
+  border-right: 1px solid var(--color-border);
+}
+
+.countryButton {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 16px;
+  background: transparent;
+  color: var(--color-text-primary);
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.countryButton:hover {
+  background: var(--color-surface-light);
+}
+
+.flag {
+  font-size: 1.2rem;
+}
+
+.dialCode {
+  font-weight: 500;
+}
+
+.arrow {
+  font-size: 0.7rem;
+  color: var(--color-text-secondary);
+}
+
+.countryDropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 100;
+  width: 320px;
+  max-height: 400px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+}
+
+.countrySearch {
+  width: 100%;
+  padding: 12px 16px;
+  background: var(--color-surface-light);
+  border: none;
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-text-primary);
+  font-size: 0.95rem;
+}
+
+.countrySearch:focus {
+  outline: none;
+}
+
+.countryList {
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.countryOption {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 16px;
+  background: transparent;
+  border: none;
+  color: var(--color-text-primary);
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background var(--transition-fast);
+  text-align: left;
+}
+
+.countryOption:hover {
+  background: var(--color-surface-light);
+}
+
+.countryOption.selected {
+  background: rgba(255, 107, 53, 0.1);
+}
+
+.countryOption .countryName {
+  flex: 1;
+}
+
+.countryOption .dialCode {
+  color: var(--color-text-secondary);
+}
+
+.input {
+  flex: 1;
+  padding: 16px;
+  background: transparent;
+  border: none;
+  color: var(--color-text-primary);
+  font-size: 1rem;
+}
+
+.input:focus {
+  outline: none;
+}
+
+.input::placeholder {
+  color: var(--color-text-secondary);
+}
+
+.input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.typeIndicator {
+  padding: 0 16px;
+  display: flex;
+  align-items: center;
+}
+
+.emailIcon, .phoneIcon {
+  font-size: 1.2rem;
+}
+
+.validIndicator {
+  padding: 0 16px;
+  color: var(--color-success);
+  font-weight: bold;
+  font-size: 1.2rem;
+}
+
+.errorMessage {
+  margin-top: 8px;
+  padding: 8px 12px;
+  background: rgba(255, 71, 87, 0.1);
+  border-radius: var(--radius-md);
+  color: var(--color-error);
+  font-size: 0.875rem;
+}
+
+.hint {
+  margin-top: 8px;
+  padding: 8px 12px;
+  background: rgba(255, 165, 2, 0.1);
+  border-radius: var(--radius-md);
+  color: var(--color-warning);
+  font-size: 0.875rem;
+}
+
+.typeLabel {
+  margin-top: 8px;
+  font-size: 0.8rem;
+  color: var(--color-primary);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Scrollbar for country list */
+.countryList::-webkit-scrollbar {
+  width: 6px;
+}
+
+.countryList::-webkit-scrollbar-track {
+  background: var(--color-surface);
+}
+
+.countryList::-webkit-scrollbar-thumb {
+  background: var(--color-primary);
+  border-radius: 3px;
+}
