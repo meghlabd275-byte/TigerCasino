@@ -1,0 +1,58 @@
+.container {
+  position: fixed;
+  top: var(--space-lg);
+  right: var(--space-lg);
+  z-index: 1000;
+}
+
+.toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  background: var(--color-surface);
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-full);
+  color: var(--color-text-primary);
+  cursor: pointer;
+  transition: all var(--transition-base);
+}
+
+.toggle:hover {
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-glow);
+}
+
+.icon {
+  font-size: 1.25rem;
+  transition: transform var(--transition-base);
+}
+
+.sun {
+  animation: rotate 0.5s ease;
+}
+
+.moon {
+  animation: rotate 0.5s ease;
+}
+
+@keyframes rotate {
+  from { transform: rotate(-90deg); opacity: 0; }
+  to { transform: rotate(0deg); opacity: 1; }
+}
+
+.label {
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+
+/* Light theme overrides */
+:global([data-theme="light"]) .toggle {
+  background: #FFFFFF;
+  border-color: #D1D5DB;
+}
+
+:global([data-theme="light"]) .toggle:hover {
+  border-color: var(--color-primary);
+}

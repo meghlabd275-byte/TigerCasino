@@ -1,0 +1,23 @@
+[package]
+name = "tigercasino-security"
+version = "1.0.0"
+edition = "2021"
+
+[dependencies]
+rand = "0.8"
+sha2 = "0.10"
+aes-gcm = "0.10"
+argon2 = "0.5"
+base64 = "0.21"
+hex = "0.4"
+hmac = "0.12"
+totp-lite = "2.0"
+uuid = { version = "1.0", features = ["v4"] }
+
+[lib]
+name = "tigercasino_security"
+path = "src/lib.rs"
+
+[[bin]]
+name = "security-cli"
+path = "src/main.rs"
