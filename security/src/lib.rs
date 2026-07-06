@@ -21,6 +21,7 @@ pub mod models;
 pub mod handlers;
 pub mod middleware;
 pub mod provider;
+pub mod websocket_security;
 
 pub use crypto_service::CryptoService;
 pub use crypto_handler::*;

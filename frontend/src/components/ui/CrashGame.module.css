@@ -1,0 +1,180 @@
+.container {
+  display: flex;
+  gap: 24px;
+  padding: 24px;
+}
+
+.gameArea {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.canvas {
+  width: 100%;
+  max-width: 600px;
+  border-radius: 12px;
+  background: var(--background);
+}
+
+.controls {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.betControls {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.label {
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.quickBets {
+  display: flex;
+  gap: 8px;
+}
+
+.quickBetBtn {
+  flex: 1;
+  padding: 8px;
+  background: var(--surface);
+  border: 1px solid transparent;
+  border-radius: 6px;
+  color: white;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.quickBetBtn:hover {
+  border-color: var(--primary);
+}
+
+.quickBetBtn.active {
+  background: var(--primary);
+}
+
+.betInput {
+  padding: 12px;
+  background: var(--surface);
+  border: 1px solid transparent;
+  border-radius: 8px;
+  color: white;
+  font-size: 16px;
+  font-family: var(--font-mono);
+}
+
+.betInput:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
+.placeBetBtn {
+  padding: 14px 24px;
+  background: var(--primary);
+  border: none;
+  border-radius: 8px;
+  color: white;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.placeBetBtn:hover {
+  background: #ff8555;
+  transform: translateY(-2px);
+}
+
+.cashoutBtn {
+  padding: 16px 32px;
+  background: linear-gradient(135deg, #00D26A, #00B056);
+  border: none;
+  border-radius: 8px;
+  color: white;
+  font-size: 18px;
+  font-weight: 700;
+  cursor: pointer;
+  animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.02); }
+}
+
+.cashoutBtn:hover {
+  background: linear-gradient(135deg, #00E676, #00C853);
+}
+
+.cashedOut {
+  padding: 16px;
+  background: rgba(0, 210, 106, 0.2);
+  border: 1px solid #00D26A;
+  border-radius: 8px;
+  color: #00D26A;
+  font-size: 18px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.error {
+  padding: 12px;
+  background: rgba(255, 71, 87, 0.2);
+  border: 1px solid #FF4757;
+  border-radius: 8px;
+  color: #FF4757;
+  font-size: 14px;
+}
+
+.history {
+  width: 200px;
+  background: var(--surface);
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.history h4 {
+  margin: 0 0 12px 0;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.historyList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.historyItem {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-family: var(--font-mono);
+}
+
+.historyItem.win {
+  background: rgba(0, 210, 106, 0.2);
+  color: #00D26A;
+}
+
+.historyItem.loss {
+  background: rgba(255, 71, 87, 0.2);
+  color: #FF4757;
+}
+
+@media (max-width: 768px) {
+  .container {
+    flex-direction: column;
+  }
+
+  .history {
+    width: 100%;
+  }
+}

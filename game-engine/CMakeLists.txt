@@ -18,9 +18,22 @@ add_library(tigercasino_game_engine STATIC
     src/GameEngine.cpp
     src/RandomNumberGenerator.cpp
     src/SlotMachine.cpp
+    src/SlotGameServer.cpp
     src/DiceGame.cpp
     src/Roulette.cpp
     src/Blackjack.cpp
+    src/CrashGameServer.cpp
+    src/TableGameServer.cpp
+    src/LiveDealerServer.cpp
+    src/ArcadeGames.cpp
+    src/GameShows.cpp
+    src/LotteryBingo.cpp
+    src/ScratchCards.cpp
+    src/TigerOriginals.cpp
+    src/TigerOriginals2.cpp
+    src/VirtualSports.cpp
+    src/ZeppelinGame.cpp
+    src/RocketQueenGame.cpp
 )
 
 target_include_directories(tigercasino_game_engine PUBLIC

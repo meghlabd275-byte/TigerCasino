@@ -2,9 +2,13 @@
 //! 
 //! Real-time fraud detection and prevention system
 
+pub mod advanced;
+
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::time::{SystemTime, UNIX_EPOCH};
+
+pub use advanced::*;
 
 /// Types of suspicious activities
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
