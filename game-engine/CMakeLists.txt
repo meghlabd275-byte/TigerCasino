@@ -23,6 +23,7 @@ add_library(tigercasino_game_engine STATIC
     src/AdditionalSlotsBatch2.cpp
     src/SlotsBatch3.cpp
     src/BulkSlotGenerator.cpp
+    src/MassiveSlotGenerator.cpp
     src/DiceGame.cpp
     src/Roulette.cpp
     src/Blackjack.cpp
