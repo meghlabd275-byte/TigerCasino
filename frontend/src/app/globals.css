@@ -1,0 +1,99 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Rajdhani:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+:root {
+  --color-primary: #FF6B35;
+  --color-secondary: #1A1A2E;
+  --color-accent: #FFD700;
+  --color-background: #0F0F1A;
+  --color-surface: #16213E;
+  --color-success: #00D26A;
+  --color-error: #FF4757;
+  --color-warning: #FFA502;
+}
+
+* {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+}
+
+html,
+body {
+  max-width: 100vw;
+  overflow-x: hidden;
+  background-color: var(--color-background);
+  color: white;
+  font-family: 'Rajdhani', sans-serif;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-surface);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-primary);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-accent);
+}
+
+/* Tiger Casino Theme */
+.tiger-gradient {
+  background: linear-gradient(135deg, #FF6B35 0%, #FFD700 100%);
+}
+
+.tiger-glow {
+  box-shadow: 0 0 20px rgba(255, 107, 53, 0.5);
+}
+
+.tiger-border {
+  border: 2px solid var(--color-primary);
+}
+
+/* Game animations */
+@keyframes crash-rise {
+  0% { transform: scale(1); }
+  100% { transform: scale(var(--multiplier)); }
+}
+
+@keyframes mine-reveal {
+  0% { transform: scale(0); opacity: 0; }
+  50% { transform: scale(1.2); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes plinko-drop {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(var(--drop-distance)); }
+}
+
+.game-container {
+  perspective: 1000px;
+}
+
+/* Responsive utilities */
+@layer utilities {
+  .text-gradient {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-primary-400 to-yellow-400;
+  }
+  
+  .glass {
+    @apply bg-white/5 backdrop-blur-lg border border-white/10;
+  }
+  
+  .glass-dark {
+    @apply bg-black/50 backdrop-blur-lg border border-white/5;
+  }
+}
