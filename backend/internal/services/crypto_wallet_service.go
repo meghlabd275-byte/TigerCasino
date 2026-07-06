@@ -282,6 +282,426 @@ func (s *CryptoWalletService) initializeNetworks() {
 		WithdrawalFee:   0.1,
 		IsActive:        true,
 	}
+
+	// Chainlink
+	s.networks["LINK"] = &NetworkConfig{
+		Name:            "Chainlink",
+		Symbol:          "LINK",
+		ChainID:         1,
+		RPCURL:          "https://eth-rpc.example.com",
+		ExplorerURL:     "https://etherscan.io",
+		MinConfirmations: 12,
+		MinDeposit:      5.0,
+		MinWithdrawal:   5.0,
+		WithdrawalFee:   1.0,
+		IsActive:        true,
+	}
+
+	// Uniswap
+	s.networks["UNI"] = &NetworkConfig{
+		Name:            "Uniswap",
+		Symbol:          "UNI",
+		ChainID:         1,
+		RPCURL:          "https://eth-rpc.example.com",
+		ExplorerURL:     "https://etherscan.io",
+		MinConfirmations: 12,
+		MinDeposit:      1.0,
+		MinWithdrawal:   1.0,
+		WithdrawalFee:   0.5,
+		IsActive:        true,
+	}
+
+	// Aave
+	s.networks["AAVE"] = &NetworkConfig{
+		Name:            "Aave",
+		Symbol:          "AAVE",
+		ChainID:         1,
+		RPCURL:          "https://eth-rpc.example.com",
+		ExplorerURL:     "https://etherscan.io",
+		MinConfirmations: 12,
+		MinDeposit:      0.5,
+		MinWithdrawal:   0.5,
+		WithdrawalFee:   0.1,
+		IsActive:        true,
+	}
+
+	// Maker
+	s.networks["MKR"] = &NetworkConfig{
+		Name:            "Maker",
+		Symbol:          "MKR",
+		ChainID:         1,
+		RPCURL:          "https://eth-rpc.example.com",
+		ExplorerURL:     "https://etherscan.io",
+		MinConfirmations: 12,
+		MinDeposit:      0.1,
+		MinWithdrawal:   0.1,
+		WithdrawalFee:   0.05,
+		IsActive:        true,
+	}
+
+	// Cosmos
+	s.networks["ATOM"] = &NetworkConfig{
+		Name:            "Cosmos",
+		Symbol:          "ATOM",
+		ChainID:         0,
+		RPCURL:          "https://cosmos-rpc.example.com",
+		ExplorerURL:     "https://mintscan.io",
+		MinConfirmations: 10,
+		MinDeposit:      0.5,
+		MinWithdrawal:   0.5,
+		WithdrawalFee:   0.1,
+		IsActive:        true,
+	}
+
+	// Algorand
+	s.networks["ALGO"] = &NetworkConfig{
+		Name:            "Algorand",
+		Symbol:          "ALGO",
+		ChainID:         0,
+		RPCURL:          "https://algo-rpc.example.com",
+		ExplorerURL:     "https://algoexplorer.io",
+		MinConfirmations: 4,
+		MinDeposit:      10.0,
+		MinWithdrawal:   10.0,
+		WithdrawalFee:   1.0,
+		IsActive:        true,
+	}
+
+	// VeChain
+	s.networks["VET"] = &NetworkConfig{
+		Name:            "VeChain",
+		Symbol:          "VET",
+		ChainID:         0,
+		RPCURL:          "https://vet-rpc.example.com",
+		ExplorerURL:     "https://vechainstats.com",
+		MinConfirmations: 20,
+		MinDeposit:      100.0,
+		MinWithdrawal:   100.0,
+		WithdrawalFee:   10.0,
+		IsActive:        true,
+	}
+
+	// Hedera
+	s.networks["HBAR"] = &NetworkConfig{
+		Name:            "Hedera Hashgraph",
+		Symbol:          "HBAR",
+		ChainID:         0,
+		RPCURL:          "https://hbar-rpc.example.com",
+		ExplorerURL:     "https://hashscan.io",
+		MinConfirmations: 10,
+		MinDeposit:      50.0,
+		MinWithdrawal:   50.0,
+		WithdrawalFee:   5.0,
+		IsActive:        true,
+	}
+
+	// Fantom
+	s.networks["FTM"] = &NetworkConfig{
+		Name:            "Fantom",
+		Symbol:          "FTM",
+		ChainID:         250,
+		RPCURL:          "https://fantom-rpc.example.com",
+		ExplorerURL:     "https://ftmscan.com",
+		MinConfirmations: 15,
+		MinDeposit:      10.0,
+		MinWithdrawal:   10.0,
+		WithdrawalFee:   1.0,
+		IsActive:        true,
+	}
+
+	// Near
+	s.networks["NEAR"] = &NetworkConfig{
+		Name:            "NEAR Protocol",
+		Symbol:          "NEAR",
+		ChainID:         0,
+		RPCURL:          "https://near-rpc.example.com",
+		ExplorerURL:     "https://explorer.near.org",
+		MinConfirmations: 5,
+		MinDeposit:      1.0,
+		MinWithdrawal:   1.0,
+		WithdrawalFee:   0.1,
+		IsActive:        true,
+	}
+
+	// Aptos
+	s.networks["APT"] = &NetworkConfig{
+		Name:            "Aptos",
+		Symbol:          "APT",
+		ChainID:         0,
+		RPCURL:          "https://aptos-rpc.example.com",
+		ExplorerURL:     "https://aptoscan.com",
+		MinConfirmations: 1,
+		MinDeposit:      0.5,
+		MinWithdrawal:   0.5,
+		WithdrawalFee:   0.1,
+		IsActive:        true,
+	}
+
+	// Arbitrum
+	s.networks["ARB"] = &NetworkConfig{
+		Name:            "Arbitrum One",
+		Symbol:          "ARB",
+		ChainID:         42161,
+		RPCURL:          "https://arb-rpc.example.com",
+		ExplorerURL:     "https://arbiscan.io",
+		MinConfirmations: 15,
+		MinDeposit:      0.01,
+		MinWithdrawal:   0.01,
+		WithdrawalFee:   0.001,
+		IsActive:        true,
+	}
+
+	// Optimism
+	s.networks["OP"] = &NetworkConfig{
+		Name:            "Optimism",
+		Symbol:          "OP",
+		ChainID:         10,
+		RPCURL:          "https://opt-rpc.example.com",
+		ExplorerURL:     "https://optimistic.etherscan.io",
+		MinConfirmations: 15,
+		MinDeposit:      0.01,
+		MinWithdrawal:   0.01,
+		WithdrawalFee:   0.001,
+		IsActive:        true,
+	}
+
+	// Polygon zkEVM
+	s.networks["POL"] = &NetworkConfig{
+		Name:            "Polygon zkEVM",
+		Symbol:          "POL",
+		ChainID:         1101,
+		RPCURL:          "https://zkevm-rpc.example.com",
+		ExplorerURL:     "https://zkevm.polygonscan.com",
+		MinConfirmations: 10,
+		MinDeposit:      0.01,
+		MinWithdrawal:   0.01,
+		WithdrawalFee:   0.001,
+		IsActive:        true,
+	}
+
+	// Base
+	s.networks["BASE"] = &NetworkConfig{
+		Name:            "Base",
+		Symbol:          "ETH",
+		ChainID:         8453,
+		RPCURL:          "https://base-rpc.example.com",
+		ExplorerURL:     "https://basescan.org",
+		MinConfirmations: 15,
+		MinDeposit:      0.001,
+		MinWithdrawal:   0.001,
+		WithdrawalFee:   0.0005,
+		IsActive:        true,
+	}
+
+	// zkSync Era
+	s.networks["ZK"] = &NetworkConfig{
+		Name:            "zkSync Era",
+		Symbol:          "ETH",
+		ChainID:         324,
+		RPCURL:          "https://zksync-rpc.example.com",
+		ExplorerURL:     "https://explorer.zksync.io",
+		MinConfirmations: 1,
+		MinDeposit:      0.001,
+		MinWithdrawal:   0.001,
+		WithdrawalFee:   0.0005,
+		IsActive:        true,
+	}
+
+	// Stellar
+	s.networks["XLM"] = &NetworkConfig{
+		Name:            "Stellar",
+		Symbol:          "XLM",
+		ChainID:         0,
+		RPCURL:          "https://stellar-rpc.example.com",
+		ExplorerURL:     "https://stellarscan.io",
+		MinConfirmations: 1,
+		MinDeposit:      10.0,
+		MinWithdrawal:   10.0,
+		WithdrawalFee:   1.0,
+		IsActive:        true,
+	}
+
+	// Monero
+	s.networks["XMR"] = &NetworkConfig{
+		Name:            "Monero",
+		Symbol:          "XMR",
+		ChainID:         0,
+		RPCURL:          "https://monero-rpc.example.com",
+		ExplorerURL:     "https://xmrchain.net",
+		MinConfirmations: 10,
+		MinDeposit:      0.1,
+		MinWithdrawal:   0.1,
+		WithdrawalFee:   0.01,
+		IsActive:        true,
+	}
+
+	// Zcash
+	s.networks["ZEC"] = &NetworkConfig{
+		Name:            "Zcash",
+		Symbol:          "ZEC",
+		ChainID:         0,
+		RPCURL:          "https://zcash-rpc.example.com",
+		ExplorerURL:     "https://zcashblockexplorer.com",
+		MinConfirmations: 10,
+		MinDeposit:      0.01,
+		MinWithdrawal:   0.01,
+		WithdrawalFee:   0.001,
+		IsActive:        true,
+	}
+
+	// Dash
+	s.networks["DASH"] = &NetworkConfig{
+		Name:            "Dash",
+		Symbol:          "DASH",
+		ChainID:         0,
+		RPCURL:          "https://dash-rpc.example.com",
+		ExplorerURL:     "https://dashblockexplorer.com",
+		MinConfirmations: 6,
+		MinDeposit:      0.01,
+		MinWithdrawal:   0.01,
+		WithdrawalFee:   0.001,
+		IsActive:        true,
+	}
+
+	// Neo
+	s.networks["NEO"] = &NetworkConfig{
+		Name:            "Neo",
+		Symbol:          "NEO",
+		ChainID:         0,
+		RPCURL:          "https://neo-rpc.example.com",
+		ExplorerURL:     "https://neotube.io",
+		MinConfirmations: 2,
+		MinDeposit:      1.0,
+		MinWithdrawal:   1.0,
+		WithdrawalFee:   0.1,
+		IsActive:        true,
+	}
+
+	// EOS
+	s.networks["EOS"] = &NetworkConfig{
+		Name:            "EOS",
+		Symbol:          "EOS",
+		ChainID:         0,
+		RPCURL:          "https://eos-rpc.example.com",
+		ExplorerURL:     "https://bloks.io",
+		MinConfirmations: 1,
+		MinDeposit:      1.0,
+		MinWithdrawal:   1.0,
+		WithdrawalFee:   0.1,
+		IsActive:        true,
+	}
+
+	// Tezos
+	s.networks["XTZ"] = &NetworkConfig{
+		Name:            "Tezos",
+		Symbol:          "XTZ",
+		ChainID:         0,
+		RPCURL:          "https://tezos-rpc.example.com",
+		ExplorerURL:     "https://tzstats.com",
+		MinConfirmations: 1,
+		MinDeposit:      1.0,
+		MinWithdrawal:   1.0,
+		WithdrawalFee:   0.1,
+		IsActive:        true,
+	}
+
+	// Flow
+	s.networks["FLOW"] = &NetworkConfig{
+		Name:            "Flow",
+		Symbol:          "FLOW",
+		ChainID:         0,
+		RPCURL:          "https://flow-rpc.example.com",
+		ExplorerURL:     "https://flowscan.io",
+		MinConfirmations: 2,
+		MinDeposit:      1.0,
+		MinWithdrawal:   1.0,
+		WithdrawalFee:   0.1,
+		IsActive:        true,
+	}
+
+	// Internet Computer
+	s.networks["ICP"] = &NetworkConfig{
+		Name:            "Internet Computer",
+		Symbol:          "ICP",
+		ChainID:         0,
+		RPCURL:          "https://icp-rpc.example.com",
+		ExplorerURL:     "https://icpcash.com",
+		MinConfirmations: 1,
+		MinDeposit:      0.1,
+		MinWithdrawal:   0.1,
+		WithdrawalFee:   0.01,
+		IsActive:        true,
+	}
+
+	// Optimism Bedrock
+	s.networks["ETH_OPT"] = &NetworkConfig{
+		Name:            "Optimism (ETH)",
+		Symbol:          "ETH",
+		ChainID:         10,
+		RPCURL:          "https://opt-rpc.example.com",
+		ExplorerURL:     "https://optimistic.etherscan.io",
+		MinConfirmations: 15,
+		MinDeposit:      0.001,
+		MinWithdrawal:   0.001,
+		WithdrawalFee:   0.0005,
+		IsActive:        true,
+	}
+
+	// Gnosis
+	s.networks["GNO"] = &NetworkConfig{
+		Name:            "Gnosis Chain",
+		Symbol:          "GNO",
+		ChainID:         100,
+		RPCURL:          "https://gnosis-rpc.example.com",
+		ExplorerURL:     "https://gnosisscan.io",
+		MinConfirmations: 15,
+		MinDeposit:      0.01,
+		MinWithdrawal:   0.01,
+		WithdrawalFee:   0.001,
+		IsActive:        true,
+	}
+
+	// Cronos
+	s.networks["CRO"] = &NetworkConfig{
+		Name:            "Cronos",
+		Symbol:          "CRO",
+		ChainID:         25,
+		RPCURL:          "https://cronos-rpc.example.com",
+		ExplorerURL:     "https://cronoscan.com",
+		MinConfirmations: 20,
+		MinDeposit:      10.0,
+		MinWithdrawal:   10.0,
+		WithdrawalFee:   1.0,
+		IsActive:        true,
+	}
+
+	// Klaytn
+	s.networks["KLAY"] = &NetworkConfig{
+		Name:            "Klaytn",
+		Symbol:          "KLAY",
+		ChainID:         8217,
+		RPCURL:          "https://klaytn-rpc.example.com",
+		ExplorerURL:     "https://klaytnscope.com",
+		MinConfirmations: 1,
+		MinDeposit:      10.0,
+		MinWithdrawal:   10.0,
+		WithdrawalFee:   1.0,
+		IsActive:        true,
+	}
+
+	// THORChain
+	s.networks["RUNE"] = &NetworkConfig{
+		Name:            "THORChain",
+		Symbol:          "RUNE",
+		ChainID:         0,
+		RPCURL:          "https://thor-rpc.example.com",
+		ExplorerURL:     "https://runescan.io",
+		MinConfirmations: 1,
+		MinDeposit:      0.1,
+		MinWithdrawal:   0.1,
+		WithdrawalFee:   0.01,
+		IsActive:        true,
+	}
 }
 
 // CreateWallet creates a new wallet for a user
