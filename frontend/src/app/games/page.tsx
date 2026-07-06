@@ -202,6 +202,54 @@ const games: Game[] = [
   { id: 'crash-jetx', name: 'JetX', type: 'crash', icon: '✈️', description: 'Jet flying', rtp: 97.0, category: 'crash', provider: 'SmartSoft', minBet: 0.1, maxBet: 100 },
   { id: 'crash-balloon', name: 'Balloon', type: 'crash', icon: '🎈', description: 'Balloon ride', rtp: 97.0, category: 'crash', provider: 'SmartSoft', minBet: 0.1, maxBet: 100 },
   { id: 'crash-zeppelin', name: 'Zeppelin', type: 'crash', icon: '🎈', description: 'Airship ride', rtp: 97.0, category: 'crash', provider: 'Betsoft', minBet: 0.1, maxBet: 100 },
+
+  // MORE SLOTS - Additional Top Games
+  { id: 'slots-mega-sphere', name: 'Mega Sphere', type: 'slots', icon: '🌐', description: 'Global jackpot', rtp: 96.0, category: 'slots', provider: 'Playtech', minBet: 0.2, maxBet: 100 },
+  { id: 'slots-age-gods', name: 'Age of Gods', type: 'slots', icon: '⚡', description: 'Greek mythology', rtp: 96.0, category: 'slots', provider: 'Playtech', isHot: true, minBet: 0.2, maxBet: 100 },
+  { id: 'slots-gladiator', name: 'Gladiator', type: 'slots', icon: '⚔️', description: 'Roman arena', rtp: 96.0, category: 'slots', provider: 'Playtech', minBet: 0.2, maxBet: 100 },
+  { id: 'slots-great-blue', name: 'Great Blue', type: 'slots', icon: '🌊', description: 'Ocean adventure', rtp: 96.0, category: 'slots', provider: 'Playtech', minBet: 0.2, maxBet: 100 },
+  { id: 'slots-lottery', name: 'Lottery', type: 'slots', icon: '🎰', description: 'Lottery fun', rtp: 96.0, category: 'slots', provider: 'Playtech', minBet: 0.2, maxBet: 100 },
+  { id: 'slots-pink-panther', name: 'Pink Panther', type: 'slots', icon: '🎀', description: 'Comedy detective', rtp: 96.0, category: 'slots', provider: 'Playtech', minBet: 0.2, maxBet: 100 },
+  { id: 'slots-captain-america', name: 'Captain America', type: 'slots', icon: '🛡️', description: 'Superhero slot', rtp: 96.0, category: 'slots', provider: 'Playtech', minBet: 0.2, maxBet: 100 },
+  { id: 'slots-avengers', name: 'Avengers', type: 'slots', icon: '🦸', description: 'Marvel heroes', rtp: 96.0, category: 'slots', provider: 'Playtech', minBet: 0.2, maxBet: 100 },
+  { id: 'slots-iron-man', name: 'Iron Man', type: 'slots', icon: '🤖', description: 'Tech hero', rtp: 96.0, category: 'slots', provider: 'Playtech', minBet: 0.2, maxBet: 100 },
+  { id: 'slots-x-men', name: 'X-Men', type: 'slots', icon: '🧬', description: 'Mutant heroes', rtp: 96.0, category: 'slots', provider: 'Playtech', minBet: 0.2, maxBet: 100 },
+  { id: 'slots-thor', name: 'Thor', type: 'slots', icon: '🔨', description: 'Thunder god', rtp: 96.0, category: 'slots', provider: 'Playtech', minBet: 0.2, maxBet: 100 },
+  { id: 'slots-hulk', name: 'Hulk', type: 'slots', icon: '💪', description: 'Green giant', rtp: 96.0, category: 'slots', provider: 'Playtech', minBet: 0.2, maxBet: 100 },
+  { id: 'slots-spider-man', name: 'Spider-Man', type: 'slots', icon: '🕷️', description: 'Web slinger', rtp: 96.0, category: 'slots', provider: 'Playtech', minBet: 0.2, maxBet: 100 },
+  { id: 'slots-wonder-woman', name: 'Wonder Woman', type: 'slots', icon: '👸', description: 'DC hero', rtp: 96.0, category: 'slots', provider: 'Playtech', minBet: 0.2, maxBet: 100 },
+  { id: 'slots-batman', name: 'Batman', type: 'slots', icon: '🦇', description: 'Dark knight', rtp: 96.0, category: 'slots', provider: 'Playtech', minBet: 0.2, maxBet: 100 },
+  { id: 'slots-superman', name: 'Superman', type: 'slots', icon: '💥', description: 'Man of steel', rtp: 96.0, category: 'slots', provider: 'Playtech', minBet: 0.2, maxBet: 100 },
+  { id: 'slots-jackpot-giant', name: 'Jackpot Giant', type: 'slots', icon: '🏔️', description: 'Giant jackpot', rtp: 96.0, category: 'slots', provider: 'Playtech', minBet: 0.2, maxBet: 100 },
+  { id: 'slots-friendly-froger', name: 'Frog Prince', type: 'slots', icon: '🐸', description: 'Fairy tale', rtp: 96.0, category: 'slots', provider: 'Playtech', minBet: 0.2, maxBet: 100 },
+  { id: 'slots-white-king', name: 'White King', type: 'slots', icon: '👑', description: 'Royal slot', rtp: 96.0, category: 'slots', provider: 'Playtech', minBet: 0.2, maxBet: 100 },
+  { id: 'slots-silent-samurai', name: 'Silent Samurai', type: 'slots', icon: '🥷', description: 'Ninja slot', rtp: 96.0, category: 'slots', provider: 'Playtech', minBet: 0.2, maxBet: 100 },
+  { id: 'slots-kong', name: 'Kong', type: 'slots', icon: '🦍', description: 'King Kong', rtp: 96.0, category: 'slots', provider: 'Playtech', minBet: 0.2, maxBet: 100 },
+  { id: 'slots-pirates', name: 'Pirates', type: 'slots', icon: '🏴‍☠️', description: 'Treasure hunt', rtp: 96.0, category: 'slots', provider: 'Playtech', minBet: 0.2, maxBet: 100 },
+  { id: 'slots-halloween', name: 'Halloween', type: 'slots', icon: '🎃', description: 'Spooky fun', rtp: 96.0, category: 'slots', provider: 'Playtech', minBet: 0.2, maxBet: 100 },
+  { id: 'slots-cook-man', name: 'Cook Man', type: 'slots', icon: '👨‍🍳', description: 'Chef slot', rtp: 96.0, category: 'slots', provider: 'Playtech', minBet: 0.2, maxBet: 100 },
+  { id: 'slots-sushi', name: 'Sushi', type: 'slots', icon: '🍣', description: 'Japanese food', rtp: 96.0, category: 'slots', provider: 'Playtech', minBet: 0.2, maxBet: 100 },
+  { id: 'slots-fortune-keeper', name: 'Fortune Keeper', type: 'slots', icon: '🔮', description: 'Mystic fortune', rtp: 96.0, category: 'slots', provider: 'Playtech', minBet: 0.2, maxBet: 100 },
+  { id: 'slots-robin-hood', name: 'Robin Hood', type: 'slots', icon: '🏹', description: 'Sherwood forest', rtp: 96.0, category: 'slots', provider: 'Playtech', minBet: 0.2, maxBet: 100 },
+  { id: 'slots-lost-temple', name: 'Lost Temple', type: 'slots', icon: '🛕', description: 'Temple adventure', rtp: 96.0, category: 'slots', provider: 'Playtech', minBet: 0.2, maxBet: 100 },
+  { id: 'slots-treasure-hunt', name: 'Treasure Hunt', type: 'slots', icon: '💎', description: 'Find treasure', rtp: 96.0, category: 'slots', provider: 'Playtech', minBet: 0.2, maxBet: 100 },
+  { id: 'slots-jungle-joy', name: 'Jungle Joy', type: 'slots', icon: '🦁', description: 'Jungle adventure', rtp: 96.0, category: 'slots', provider: 'Playtech', minBet: 0.2, maxBet: 100 },
+  { id: 'slots-wild-spirit', name: 'Wild Spirit', type: 'slots', icon: '🐺', description: 'Wild wolves', rtp: 96.0, category: 'slots', provider: 'Playtech', minBet: 0.2, maxBet: 100 },
+  { id: 'slots-golden-ark', name: 'Golden Ark', type: 'slots', icon: '方舟', description: 'Noah\'s ark', rtp: 96.0, category: 'slots', provider: 'Playtech', minBet: 0.2, maxBet: 100 },
+  { id: 'slots-graceful-china', name: 'Zhao Cai Tong Zi', type: 'slots', icon: '🐉', description: 'Chinese fortune', rtp: 96.0, category: 'slots', provider: 'Playtech', minBet: 0.2, maxBet: 100 },
+  { id: 'slots-aztec-temple', name: 'Aztec Temple', type: 'slots', icon: '🗿', description: 'Aztec adventure', rtp: 96.0, category: 'slots', provider: 'Playtech', minBet: 0.2, maxBet: 100 },
+  { id: 'slots-cat-queen', name: 'Cat Queen', type: 'slots', icon: '🐱', description: 'Cat goddess', rtp: 96.0, category: 'slots', provider: 'Playtech', minBet: 0.2, maxBet: 100 },
+  { id: 'slots-sticky-diamonds', name: 'Sticky Diamonds', type: 'slots', icon: '💎', description: 'Diamond rush', rtp: 96.0, category: 'slots', provider: 'Betsoft', minBet: 0.2, maxBet: 100 },
+  { id: 'slots-tipsy-tourist', name: 'Tipsy Tourist', type: 'slots', icon: '🍹', description: 'Beach fun', rtp: 96.0, category: 'slots', provider: 'Betsoft', minBet: 0.2, maxBet: 100 },
+  { id: 'slots-tiger-claw', name: 'Tiger Claw', type: 'slots', icon: '🐯', description: 'Wild tiger', rtp: 96.0, category: 'slots', provider: 'Betsoft', minBet: 0.2, maxBet: 100 },
+  { id: 'slots-under-water', name: 'Under Water', type: 'slots', icon: '🐠', description: 'Ocean deep', rtp: 96.0, category: 'slots', provider: 'Betsoft', minBet: 0.2, maxBet: 100 },
+  { id: 'slots-birds', name: 'Birds', type: 'slots', icon: '🐦', description: 'Bird slot', rtp: 96.0, category: 'slots', provider: 'Betsoft', minBet: 0.2, maxBet: 100 },
+  { id: 'slots-tekken', name: 'Tekken', type: 'slots', icon: '🥊', description: 'Fighting game', rtp: 96.0, category: 'slots', provider: 'Betsoft', minBet: 0.2, maxBet: 100 },
+  { id: 'slots-rough-rider', name: 'Rough Rider', type: 'slots', icon: '🏇', description: 'Wild west', rtp: 96.0, category: 'slots', provider: 'Betsoft', minBet: 0.2, maxBet: 100 },
+  { id: 'slots-mad-pinocchio', name: 'Mad Pinocchio', type: 'slots', icon: '🤥', description: 'Wooden boy', rtp: 96.0, category: 'slots', provider: 'Betsoft', minBet: 0.2, maxBet: 100 },
+  { id: 'slots-gold-diggers', name: 'Gold Diggers', type: 'slots', icon: '⛏️', description: 'Gold mining', rtp: 96.0, category: 'slots', provider: 'Betsoft', minBet: 0.2, maxBet: 100 },
+  { id: 'slots-reel-of-fortune', name: 'Reel of Fortune', type: 'slots', icon: '🎰', description: 'Lucky reels', rtp: 96.0, category: 'slots', provider: 'Betsoft', minBet: 0.2, maxBet: 100 },
+  { id: 'slots-weekend-in-vegas', name: 'Weekend in Vegas', type: 'slots', icon: '🎰', description: 'Vegas fun', rtp: 96.0, category: 'slots', provider: 'Betsoft', minBet: 0.2, maxBet: 100 },
 ];
 
 const categories = [
@@ -239,7 +287,7 @@ export default function GamesPage() {
         <section className={styles.hero}>
           <div className={styles.heroContent}>
             <h1 className={styles.title}>
-              <span className={styles.highlight}>500+</span> Casino Games
+              <span className={styles.highlight}>200+</span> Casino Games
             </h1>
             <p className={styles.subtitle}>
               Experience the thrill of real casino games with instant crypto payouts
