@@ -7,6 +7,26 @@
 //! - HMAC signature verification
 //! - TOTP for two-factor authentication
 //! - Fraud detection patterns
+//! - Crypto deposit/withdrawal services
+//! - Database operations
+//! - HTTP handlers and middleware
+
+// Re-export main modules
+pub mod crypto_service;
+pub mod crypto_handler;
+pub mod database;
+pub mod config;
+pub mod models;
+pub mod handlers;
+pub mod middleware;
+
+pub use crypto_service::CryptoService;
+pub use crypto_handler::*;
+pub use database::Database;
+pub use config::{Config, Claims};
+pub use models::*;
+pub use handlers::*;
+pub use middleware::*;
 
 use rand::Rng;
 use sha2::{Sha256, Sha512, Digest};
