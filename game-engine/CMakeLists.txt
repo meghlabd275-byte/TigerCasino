@@ -19,12 +19,14 @@ add_library(tigercasino_game_engine STATIC
     src/RandomNumberGenerator.cpp
     src/SlotMachine.cpp
     src/SlotGameServer.cpp
+    src/ExtendedSlotGames.cpp
     src/DiceGame.cpp
     src/Roulette.cpp
     src/Blackjack.cpp
     src/CrashGameServer.cpp
     src/TableGameServer.cpp
     src/LiveDealerServer.cpp
+    src/OriginalGamesExtended.cpp
     src/ArcadeGames.cpp
     src/GameShows.cpp
     src/LotteryBingo.cpp
@@ -51,4 +53,5 @@ target_link_libraries(game_engine_cli PRIVATE
 )
 
 # Install headers for external use
-install(DIRECTORY include/ DESTINATION include/tigercasino)
+install(DIRECTORY include/ DESTINATION include/tigercasino
+    FILES_MATCHING PATTERN "*.hpp")
