@@ -35,6 +35,38 @@ type User struct {
 	LastLogin       *time.Time `json:"last_login,omitempty"`
 }
 
+// Wallet represents a user's wallet
+type Wallet struct {
+	ID        string          `gorm:"type:uuid;primary_key" json:"id"`
+	UserID    string          `gorm:"type:uuid;not null;index" json:"user_id"`
+	Balances  map[string]float64 `gorm:"-" json:"balances"`
+	CreatedAt time.Time       `gorm:"default:CURRENT_TIMESTAMP" json:"created_at"`
+	UpdatedAt time.Time       `gorm:"default:CURRENT_TIMESTAMP" json:"updated_at"`
+}
+
+// DepositAddress represents a deposit address
+type DepositAddress struct {
+	ID        uuid.UUID `gorm:"type:uuid;primary_key" json:"id"`
+	UserID    string    `gorm:"type:uuid;not null;index" json:"user_id"`
+	Currency  string    `gorm:"not null" json:"currency"`
+	Address   string    `gorm:"not null" json:"address"`
+	IsActive  bool      `gorm:"default:true" json:"is_active"`
+	CreatedAt time.Time `gorm:"default:CURRENT_TIMESTAMP" json:"created_at"`
+}
+
+// WithdrawalRequest represents a withdrawal request
+type WithdrawalRequest struct {
+	ID        uuid.UUID `gorm:"type:uuid;primary_key" json:"id"`
+	UserID    string    `gorm:"type:uuid;not null;index" json:"user_id"`
+	Currency  string    `gorm:"not null" json:"currency"`
+	Amount    float64   `gorm:"not null" json:"amount"`
+	Address   string    `gorm:"not null" json:"address"`
+	Status    string    `gorm:"default:'pending'" json:"status"`
+	TxHash    string    `json:"tx_hash,omitempty"`
+	CreatedAt time.Time `gorm:"default:CURRENT_TIMESTAMP" json:"created_at"`
+	ProcessedAt *time.Time `json:"processed_at,omitempty"`
+}
+
 // VIPLevel represents VIP tier configuration
 type VIPLevel struct {
 	ID                      uuid.UUID `gorm:"type:uuid;primary_key" json:"id"`
