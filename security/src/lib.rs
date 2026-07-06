@@ -10,6 +10,7 @@
 //! - Crypto deposit/withdrawal services
 //! - Database operations
 //! - HTTP handlers and middleware
+//! - Game provider API integrations
 
 // Re-export main modules
 pub mod crypto_service;
@@ -19,6 +20,7 @@ pub mod config;
 pub mod models;
 pub mod handlers;
 pub mod middleware;
+pub mod provider;
 
 pub use crypto_service::CryptoService;
 pub use crypto_handler::*;
@@ -27,6 +29,7 @@ pub use config::{Config, Claims};
 pub use models::*;
 pub use handlers::*;
 pub use middleware::*;
+pub use provider::*;
 
 use rand::Rng;
 use sha2::{Sha256, Sha512, Digest};
