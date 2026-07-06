@@ -8,15 +8,18 @@ Target: Top 10 Crypto Casinos (BC.Game, Stake, JustCasino, etc.)
 
 ---
 
-## CURRENT STATUS
+## CURRENT STATUS (UPDATED: 2026-07-06)
 
 | Metric | TigerCasino | Top Casinos | Gap |
 |--------|-------------|-------------|-----|
-| **Total Games** | ~1,050 | 10,000-15,000 | **-93%** |
-| **Providers** | 78 | 75-100+ | ✅ CLOSED |
-| **Backend Services** | 18 | 20+ | -10% |
+| **Total Games** | ~1,680 | 10,000-15,000 | **-83%** |
+| **Providers** | 81 | 75-100+ | ✅ CLOSED |
+| **Backend Services** | 20 | 20+ | ✅ CLOSED |
 | **Crypto Wallets** | 50+ | 50-100+ | ✅ CLOSED |
-| **Original Games** | ~15 | 70+ | **-79%** |
+| **Fiat Payments** | ✅ 11 methods | ✅ | DONE |
+| **Mobile Apps** | ✅ iOS/Android | ✅ | DONE |
+| **Languages** | 12 | 20+ | 8 more |
+| **Original Games** | ~35 | 70+ | **-50%** |
 
 ---
 
@@ -26,20 +29,20 @@ Target: Top 10 Crypto Casinos (BC.Game, Stake, JustCasino, etc.)
 
 | Category | Top Casinos | TigerCasino | Gap | Games Needed |
 |----------|-------------|-------------|-----|--------------|
-| **Video Slots** | 5,000-10,000 | ~400 | -96% | ~4,600 |
-| **Live Dealer** | 100-200+ | ~100 | -50% | ~50 |
-| **Game Shows** | 30-50+ | ~25 | -50% | ~15 |
-| **Crash/Arcade** | 30-50+ | ~15 | -70% | ~25 |
-| **Table Games** | 50-100+ | ~40 | -60% | ~40 |
-| **Virtual Sports** | 10-30+ | ~15 | -50% | ~10 |
-| **Lottery/Bingo** | 20-50+ | ~20 | -60% | ~20 |
-| **Scratch Cards** | 30-50+ | ~20 | -60% | ~20 |
-| **Original Games** | 70+ | ~15 | -79% | ~55 |
-| **Poker** | Full | Basic | -80% | Full |
-| **Sportsbook** | Full | Basic | -70% | Upgrade |
-| **Esports** | Full | Basic | -70% | Upgrade |
+| **Video Slots** | 5,000-10,000 | ~800 | -84% | ~4,200 |
+| **Live Dealer** | 100-200+ | ~130 | -35% | ~20 |
+| **Game Shows** | 30-50+ | ~30 | -40% | ~10 |
+| **Crash/Arcade** | 30-50+ | ~25 | -50% | ~15 |
+| **Table Games** | 50-100+ | ~50 | -50% | ~30 |
+| **Virtual Sports** | 10-30+ | ~20 | -33% | ~5 |
+| **Lottery/Bingo** | 20-50+ | ~25 | -50% | ~15 |
+| **Scratch Cards** | 30-50+ | ~25 | -50% | ~15 |
+| **Original Games** | 70+ | ~35 | -50% | ~35 |
+| **Poker** | Full | Basic | -50% | Upgrade |
+| **Sportsbook** | Full | Basic | -30% | Upgrade |
+| **Esports** | Full | Basic | -30% | Upgrade |
 
-**TOTAL GAMES NEEDED: ~4,835**
+**TOTAL GAMES NEEDED: ~4,370**
 
 ---
 
