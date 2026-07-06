@@ -32,7 +32,10 @@ export default function Header() {
           <Link href="/dashboard" className={styles.navLink}>Dashboard</Link>
           <Link href="/wallet" className={styles.navLink}>Wallet</Link>
           {isAuthenticated && user?.isAdmin && (
-            <Link href="/admin" className={styles.navLink}>Admin</Link>
+            <>
+              <Link href="/admin" className={styles.navLink}>Admin</Link>
+              <Link href="/admin/whitelabel" className={styles.navLink}>White Label</Link>
+            </>
           )}
         </nav>
 
