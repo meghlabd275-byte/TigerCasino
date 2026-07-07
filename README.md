@@ -1,3 +1,72 @@
+# TigerCasino - Next-Generation Crypto Casino Platform
+
+A comprehensive full-stack online casino platform with cryptocurrency support, featuring ultra-low latency game engine, provably fair gaming, and enterprise-grade security.
+
+## 🏗️ Architecture
+
+This platform is built with a multi-layered architecture optimized for performance, security, and scalability:
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                           FRONTEND (Next.js)                            │
+│                   TypeScript + React + Tailwind CSS                     │
+│                     30+ Gaming Pages, Admin Panel                      │
+└─────────────────────────────────────────────────────────────────────────┘
+                                    │
+                                    ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│                         BACKEND (Go/Golang)                             │
+│              High-performance API, WebSocket, Services                  │
+│         User Management | Games | Payments | Sportsbook               │
+└─────────────────────────────────────────────────────────────────────────┘
+                                    │
+                    ┌───────────────┼───────────────┐
+                    ▼               ▼               ▼
+         ┌──────────────┐ ┌──────────────┐ ┌──────────────┐
+         │  Game Engine  │ │   Security   │ │  Analytics   │
+         │     (C++)     │ │    (Rust)    │ │   (Go)       │
+         │ Ultra-Low     │ │ Crypto Ops   │ │  Real-time   │
+         │ Latency       │ │ Provably     │ │  Metrics     │
+         └──────────────┘ │ Fair         │ └──────────────┘
+                          │ Fraud Detect │                │
+                          └──────────────┘                │
+                                                               │
+                                                               ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│                        INFRASTRUCTURE                                  │
+│            PostgreSQL | Redis | RabbitMQ | Docker/K8s                  │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+## 🚀 Technology Stack
+
+### Frontend
+- **Framework**: Next.js 14 (React 18)
+- **Language**: TypeScript
+- **Styling**: Tailwind CSS
+- **State Management**: Zustand
+- **API Client**: TanStack Query
+- **Animations**: Framer Motion
+
+### Backend Services (Go)
+- **Framework**: Gin Web Framework
+- **Database**: PostgreSQL + GORM
+- **Cache**: Redis
+- **Message Queue**: RabbitMQ
+- **Real-time**: WebSocket
+
+### Game Engine (C++)
+- **Standard**: C++20
+- **Optimization**: -O3, march=native
+- **Games**: Slots, Table Games, Live Dealer, Crash, Dice, etc.
+
+### Security Module (Rust)
+- **Crypto**: AES-GCM, Argon2, SHA-256/512
+- **Auth**: JWT, TOTP
+- **Framework**: Actix-web
+
+---
+
 # TigerCasino - Crypto Deposit & Withdrawal System
 
 A full-stack online casino platform with comprehensive cryptocurrency support for deposits and withdrawals across multiple blockchain networks.

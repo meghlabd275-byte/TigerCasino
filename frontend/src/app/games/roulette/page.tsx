@@ -7,7 +7,7 @@ import { useAuthStore, useGameStore } from '@/store';
 
 // Roulette configuration
 const EUROPEAN_WHEEL = [0, 32, 15, 19, 4, 21, 2, 25, 17, 34, 6, 27, 13, 36, 11, 30, 8, 23, 10, 5, 24, 16, 33, 1, 20, 14, 31, 9, 22, 18, 29, 7, 28, 12, 35, 3, 26];
-const AMERICAN_WHEEL = [0, 28, 9, 26, 30, 11, 7, 20, 32, 17, 5, 22, 34, 15, 3, 24, 36, 13, 1, 00, 27, 10, 25, 29, 12, 8, 19, 31, 18, 6, 21, 33, 16, 4, 23, 35, 14, 2];
+const AMERICAN_WHEEL = [0, 28, 9, 26, 30, 11, 7, 20, 32, 17, 5, 22, 34, 15, 3, 24, 36, 13, 1, 37, 27, 10, 25, 29, 12, 8, 19, 31, 18, 6, 21, 33, 16, 4, 23, 35, 14, 2];
 
 // Bet types and their payouts
 const BET_PAYOUTS: Record<string, number> = {
@@ -219,7 +219,7 @@ export default function RouletteGame() {
                 >
                   <div className="w-40 h-40 rounded-full bg-tiger-dark flex items-center justify-center">
                     <span className="text-4xl font-bold text-white">
-                      {currentNumber !== null ? currentNumber : wheelType === 'european' ? '0' : '00'}
+                      {currentNumber !== null ? (currentNumber === 37 ? '00' : currentNumber) : wheelType === 'european' ? '0' : '00'}
                     </span>
                   </div>
                 </motion.div>
@@ -236,7 +236,7 @@ export default function RouletteGame() {
                     {isRed(currentNumber) ? '🔴 Red' : isBlack(currentNumber) ? '⚫ Black' : '🟢 Green'}
                   </p>
                   <p className="text-2xl font-bold">
-                    {currentNumber === 0 || currentNumber === 00 ? 'ZERO' : 
+                    {currentNumber === 0 || currentNumber === 37 ? 'ZERO' : 
                      currentNumber % 2 === 0 ? 'Even' : 'Odd'}
                   </p>
                 </motion.div>
@@ -274,7 +274,7 @@ export default function RouletteGame() {
                 {/* Row 1: 0, 00 for American */}
                 {wheelType === 'american' && (
                   <button
-                    onClick={() => placeBet('straight', 00)}
+                    onClick={() => placeBet('straight', 37)}
                     className="aspect-square rounded bg-green-600 text-white font-bold text-sm hover:bg-green-500"
                   >
                     00
@@ -401,7 +401,7 @@ export default function RouletteGame() {
                     key={index}
                     className={`w-8 h-8 rounded flex items-center justify-center text-xs font-bold ${
                       isRed(num) ? 'bg-red-600 text-white' : 
-                      num === 0 || num === 00 ? 'bg-green-600 text-white' :
+                      num === 0 || num === 37 ? 'bg-green-600 text-white' :
                       'bg-gray-800 text-white'
                     }`}
                   >
