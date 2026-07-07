@@ -155,8 +155,37 @@ export default function SlotsPage() {
   }, [activeProvider, activeCategory, search, sortBy, showFavorites]);
 
   const handleGameClick = (gameId: string) => {
-    // Navigate to game - would integrate with game engine
-    toast.success(`Launching ${gameId}...`);
+    toast.loading(`Launching ${gameId}...`, { duration: 1000 });
+
+    // Call real API
+    fetch(`/api/games/slots/bet`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        amount: 1.0 // Default bet
+      })
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.error) {
+        toast.error(data.error);
+        return;
+      }
+
+      if (data.win_amount > 0) {
+        toast.success(`JACKPOT! You won $${data.win_amount.toFixed(2)} on ${gameId}!`, {
+          icon: '💰',
+          duration: 5000
+        });
+      } else {
+        toast.error(`No win this time on ${gameId}. Try again!`);
+      }
+    })
+    .catch(err => {
+      toast.error('Failed to connect to game server');
+    });
   };
 
   return (

@@ -100,87 +100,62 @@ export default function RouletteGame() {
 
     setIsSpinning(true);
     
-    // Simulate spinning animation
-    const wheel = getWheel();
-    let spins = 0;
-    const spinInterval = setInterval(() => {
-      setCurrentNumber(wheel[Math.floor(Math.random() * wheel.length)]);
-      spins++;
-      
-      if (spins > 20) {
-        clearInterval(spinInterval);
-        
-        // Final result
-        const finalNumber = wheel[Math.floor(Math.random() * wheel.length)];
-        setCurrentNumber(finalNumber);
-        
-        // Check bets
-        let totalWinnings = 0;
-        const newBets: Bet[] = [];
-        
-        selectedBets.forEach(bet => {
-          let won = false;
-          
-          switch (bet.type) {
-            case 'straight':
-              won = finalNumber === bet.value;
-              break;
-            case 'red_black':
-              won = (bet.value === 'red' && isRed(finalNumber)) || 
-                    (bet.value === 'black' && isBlack(finalNumber));
-              break;
-            case 'even_odd':
-              won = finalNumber !== 0 && (
-                (bet.value === 'even' && finalNumber % 2 === 0) ||
-                (bet.value === 'odd' && finalNumber % 2 !== 0)
-              );
-              break;
-            case 'low_high':
-              won = (bet.value === 'low' && finalNumber >= 1 && finalNumber <= 18) ||
-                    (bet.value === 'high' && finalNumber >= 19 && finalNumber <= 36);
-              break;
-            case 'dozen':
-              won = (bet.value === 1 && finalNumber >= 1 && finalNumber <= 12) ||
-                    (bet.value === 2 && finalNumber >= 13 && finalNumber <= 24) ||
-                    (bet.value === 3 && finalNumber >= 25 && finalNumber <= 36);
-              break;
-            case 'column':
-              const col = bet.value as number;
-              const colNumbers = [1, 4, 7, 10, 13, 16, 19, 22, 25, 28, 31, 34]
-                .map(n => n + (col - 1) * 3);
-              won = colNumbers.includes(finalNumber);
-              break;
-          }
-          
-          const payout = won ? bet.amount * (BET_PAYOUTS[bet.type] || 1) : 0;
-          const profit = payout - bet.amount;
-          totalWinnings += profit;
-          
-          newBets.push({
-            id: Date.now().toString() + Math.random(),
-            amount: bet.amount,
-            type: bet.type,
-            value: bet.value,
-            result: finalNumber,
-            won,
-            profit,
-            timestamp: new Date()
-          });
-        });
-        
-        setMyBets(prev => [...newBets, ...prev].slice(0, 50));
-        setGameHistory(prev => [finalNumber, ...prev].slice(0, 20));
-        
-        if (totalWinnings > 0) {
-          toast.success(`Won $${totalWinnings.toFixed(2)}!`);
-        } else {
-          toast.error(`Lost $${totalBet.toFixed(2)}`);
-        }
-        
+    // Call real API
+    // Note: This is simplified to just use the first bet for demo purposes
+    const mainBet = selectedBets[0];
+
+    fetch(`/api/games/roulette/bet`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        amount: totalBet,
+        bet_type: mainBet.type,
+        selected_number: typeof mainBet.value === 'number' ? mainBet.value : 0
+      })
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.error) {
+        toast.error(data.error);
         setIsSpinning(false);
-        setSelectedBets([]);
+        return;
       }
-    }, 100);
+
+      const finalNumber = data.number;
+      setCurrentNumber(finalNumber);
+
+      const won = data.win_amount > 0;
+      const profit = data.win_amount - totalBet;
+
+      const newBet: Bet = {
+        id: Date.now().toString(),
+        amount: totalBet,
+        type: mainBet.type,
+        value: mainBet.value,
+        result: finalNumber,
+        won,
+        profit,
+        timestamp: new Date()
+      };
+
+      setMyBets(prev => [newBet, ...prev].slice(0, 50));
+      setGameHistory(prev => [finalNumber, ...prev].slice(0, 20));
+
+      if (won) {
+        toast.success(`Won $${data.win_amount.toFixed(2)}!`);
+      } else {
+        toast.error(`Lost $${totalBet.toFixed(2)}`);
+      }
+
+      setIsSpinning(false);
+      setSelectedBets([]);
+    })
+    .catch(err => {
+      toast.error('Failed to connect to game server');
+      setIsSpinning(false);
+    });
   }, [selectedBets, isAuthenticated, getWheel, betAmount]);
 
   return (

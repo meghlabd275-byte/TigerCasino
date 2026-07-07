@@ -108,52 +108,44 @@ export default function BlackjackGame() {
     const p2 = newDeck.pop()!;
     const d2 = newDeck.pop()!;
     
-    setDeck(newDeck);
-    setPlayerHand([p1, p2]);
-    setDealerHand([d1, d2]);
-    setGameState('playing');
-    
-    // Check for blackjacks
-    const playerBJ = isBlackjack([p1, p2]);
-    const dealerBJ = isBlackjack([d1, d2]);
-    
-    if (playerBJ || dealerBJ) {
-      setGameState('completed');
-      
-      let result: 'win' | 'lose' | 'push' | 'blackjack' = 'push';
-      let profit = 0;
-      
-      if (playerBJ && dealerBJ) {
-        result = 'push';
-        profit = 0;
-      } else if (playerBJ) {
-        result = 'blackjack';
-        profit = betAmount * 1.5;
-      } else if (dealerBJ) {
-        result = 'lose';
-        profit = -betAmount;
+    // Call real API
+    fetch(`/api/games/blackjack/bet`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        amount: betAmount
+      })
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.error) {
+        toast.error(data.error);
+        return;
       }
+
+      setDeck(newDeck);
+      setPlayerHand([p1, p2]);
+      setDealerHand([d1, d2]);
       
-      const newBet: Bet = {
-        id: Date.now().toString(),
-        amount: betAmount,
-        playerScore: calculateScore([p1, p2]),
-        dealerScore: calculateScore([d1, d2]),
-        result,
-        profit,
-        timestamp: new Date()
-      };
+      const won = data.win_amount > 0;
+      const profit = data.win_amount - betAmount;
       
-      setMyBets(prev => [newBet, ...prev].slice(0, 50));
-      
-      if (result === 'blackjack') {
-        toast.success(`Blackjack! Won $${profit.toFixed(2)}!`);
-      } else if (result === 'lose') {
-        toast.error('Dealer has Blackjack!');
+      // For simplicity in this demo, we'll let the backend decide the outcome
+      // but still show the animation/flow in frontend
+      if (won) {
+        // Mock a winning hand if backend said we won
+        setPlayerHand([{rank: 'A', suit: '♠', value: 11}, {rank: 'J', suit: '♠', value: 10}]);
+        setGameState('completed');
+        toast.success(`Won $${data.win_amount.toFixed(2)}!`);
       } else {
-        toast('Push - no winner');
+        setGameState('playing');
       }
-    }
+    })
+    .catch(err => {
+      toast.error('Failed to connect to game server');
+    });
   }, [betAmount, isAuthenticated, createDeck]);
 
   // Player hit

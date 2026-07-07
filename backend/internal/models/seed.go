@@ -28,7 +28,6 @@ func SeedAdmin(db *gorm.DB, email, password string) {
 			IsBanned:     false,
 			Is2FAEnabled: false,
 			EmailVerified: true,
-			PhoneVerified: false,
 			CreatedAt:    time.Now(),
 			UpdatedAt:    time.Now(),
 		}

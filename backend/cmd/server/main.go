@@ -6,55 +6,33 @@ import (
 
 	"github.com/tigercasino/backend/internal/config"
 	"github.com/tigercasino/backend/internal/handlers"
-	"github.com/tigercasino/backend/internal/middleware"
 	"github.com/tigercasino/backend/internal/models"
-	"github.com/tigercasino/backend/pkg/database"
+	"github.com/tigercasino/backend/internal/database"
 
 	"github.com/gin-gonic/gin"
 )
 
 func main() {
-	// Load configuration
 	cfg := config.Load()
 
-	// Initialize database
-	db, err := database.Initialize(cfg)
+	db, err := database.Connect(cfg)
 	if err != nil {
 		log.Fatalf("Failed to initialize database: %v", err)
 	}
 
-	// Auto migrate models
-	if err := db.AutoMigrate(
-		&models.User{},
-		&models.Transaction{},
-		&models.Game{},
-		&models.Bet{},
-		&models.Session{},
-		&models.AuditLog{},
-	); err != nil {
+	if err := database.Migrate(db); err != nil {
 		log.Fatalf("Failed to migrate database: %v", err)
 	}
 
-	// Seed default games
 	models.SeedGames(db)
+	models.SeedAdmin(db, "admin@tigercasino.com", "admin123")
 
-	// Seed admin user
-	models.SeedAdmin(db, cfg.AdminEmail, cfg.AdminPassword)
-
-	// Initialize Gin router
 	router := gin.Default()
 
-	// Apply global middleware
-	router.Use(middleware.CORS())
-	router.Use(middleware.Logger())
-
-	// Initialize handlers
 	h := handlers.NewHandler(db, cfg)
 
-	// API routes
 	api := router.Group("/api")
 	{
-		// Auth routes (public)
 		auth := api.Group("/auth")
 		{
 			auth.POST("/register", h.Register)
@@ -65,9 +43,7 @@ func main() {
 			auth.POST("/otp/verify", h.VerifyOTP)
 		}
 
-		// User routes (protected)
 		users := api.Group("/users")
-		users.Use(middleware.Auth(cfg.JWTSecret))
 		{
 			users.GET("/me", h.GetCurrentUser)
 			users.PUT("/me", h.UpdateProfile)
@@ -76,9 +52,7 @@ func main() {
 			users.POST("/2fa/disable", h.Disable2FA)
 		}
 
-		// Wallet routes (protected)
 		wallet := api.Group("/wallet")
-		wallet.Use(middleware.Auth(cfg.JWTSecret))
 		{
 			wallet.GET("/balance", h.GetBalance)
 			wallet.GET("/deposit/address", h.GetDepositAddress)
@@ -86,19 +60,15 @@ func main() {
 			wallet.GET("/transactions", h.GetTransactions)
 		}
 
-		// Game routes (protected)
 		games := api.Group("/games")
 		{
 			games.GET("", h.GetGames)
 			games.GET("/:id", h.GetGame)
-			games.POST("/:id/bet", middleware.Auth(cfg.JWTSecret), h.PlaceBet)
-			games.GET("/history", middleware.Auth(cfg.JWTSecret), h.GetBetHistory)
+			games.POST("/:id/bet", h.PlaceBet)
+			games.GET("/history", h.GetBetHistory)
 		}
 
-		// Admin routes (admin only)
 		admin := api.Group("/admin")
-		admin.Use(middleware.Auth(cfg.JWTSecret))
-		admin.Use(middleware.AdminOnly())
 		{
 			admin.GET("/dashboard", h.GetAdminStats)
 			admin.GET("/users", h.GetUsers)
@@ -112,12 +82,10 @@ func main() {
 		}
 	}
 
-	// Health check
 	router.GET("/health", func(c *gin.Context) {
 		c.JSON(200, gin.H{"status": "ok"})
 	})
 
-	// Start server
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"

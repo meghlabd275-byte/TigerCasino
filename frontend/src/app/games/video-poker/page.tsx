@@ -202,30 +202,50 @@ export default function VideoPokerGame() {
       }
     });
     
-    setHand(newHand);
-    setGameState('completed');
-    
-    // Evaluate hand
-    const handResult = evaluateHand(newHand);
-    const payout = PAYTABLE[handResult] || 0;
-    const profit = (payout * betAmount) - betAmount;
-    
-    const newBet: Bet = {
-      id: Date.now().toString(),
-      amount: betAmount,
-      hand: handResult.replace('_', ' '),
-      won: payout > 0,
-      profit,
-      timestamp: new Date()
-    };
-    
-    setMyBets(prev => [newBet, ...prev].slice(0, 50));
-    
-    if (payout > 0) {
-      toast.success(`${handResult.replace('_', ' ')}! Won $${profit.toFixed(2)}!`);
-    } else {
-      toast.error('No winning hand');
-    }
+    // Call real API
+    fetch(`/api/games/video_poker/bet`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        amount: betAmount
+      })
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.error) {
+        toast.error(data.error);
+        return;
+      }
+
+      setHand(newHand);
+      setGameState('completed');
+
+      const won = data.win_amount > 0;
+      const profit = data.win_amount - betAmount;
+      const handResult = evaluateHand(newHand);
+
+      const newBet: Bet = {
+        id: Date.now().toString(),
+        amount: betAmount,
+        hand: handResult.replace('_', ' '),
+        won,
+        profit,
+        timestamp: new Date()
+      };
+
+      setMyBets(prev => [newBet, ...prev].slice(0, 50));
+
+      if (won) {
+        toast.success(`Won $${data.win_amount.toFixed(2)}!`);
+      } else {
+        toast.error('No winning hand');
+      }
+    })
+    .catch(err => {
+      toast.error('Failed to connect to game server');
+    });
   }, [gameState, hand, betAmount]);
 
   // Render card
