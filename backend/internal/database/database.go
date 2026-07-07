@@ -7,8 +7,8 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
-	"tigercasino/backend/internal/config"
-	"tigercasino/backend/internal/models"
+	"github.com/tigercasino/backend/internal/config"
+	"github.com/tigercasino/backend/internal/models"
 )
 
 func Connect(cfg *config.Config) (*gorm.DB, error) {
