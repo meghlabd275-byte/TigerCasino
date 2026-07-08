@@ -138,3 +138,53 @@ func (s *UserService) GetTransactions(userID uuid.UUID, txType string, limit int
 	var txs []models.Transaction
 	return txs, nil
 }
+
+func (s *UserService) UpdateWagered(userID uuid.UUID, amount float64) error {
+	return s.db.Model(&models.User{}).Where("id = ?", userID).
+		Update("total_wagered", gorm.Expr("total_wagered + ?", amount)).Error
+}
+
+func (s *UserService) UpdateDeposited(userID uuid.UUID, amount float64) error {
+	return s.db.Model(&models.User{}).Where("id = ?", userID).
+		Update("total_deposited", gorm.Expr("total_deposited + ?", amount)).Error
+}
+
+func (s *UserService) UpdateWithdrawn(userID uuid.UUID, amount float64) error {
+	return s.db.Model(&models.User{}).Where("id = ?", userID).
+		Update("total_withdrawn", gorm.Expr("total_withdrawn + ?", amount)).Error
+}
+
+func (s *UserService) GetVIPLevel(userID uuid.UUID) (*models.VIPLevel, error) {
+	var user models.User
+	if err := s.db.First(&user, userID).Error; err != nil {
+		return nil, err
+	}
+
+	var vipLevel models.VIPLevel
+	err := s.db.Where("level = ?", user.VIPLevel).First(&vipLevel).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return &vipLevel, nil
+}
+
+func (s *UserService) CheckAndUpgradeVIP(userID uuid.UUID) error {
+	var user models.User
+	if err := s.db.First(&user, userID).Error; err != nil {
+		return err
+	}
+
+	// Check if user qualifies for a higher VIP level based on total wagered
+	var levels []models.VIPLevel
+	s.db.Order("level DESC").Find(&levels)
+
+	for _, level := range levels {
+		if user.TotalWagered >= level.RequiredPoints && user.VIPLevel < level.Level {
+			s.db.Model(&user).Update("vip_level", level.Level)
+			break
+		}
+	}
+
+	return nil
+}
