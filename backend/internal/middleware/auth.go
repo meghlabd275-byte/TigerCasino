@@ -3,6 +3,7 @@ package middleware
 import (
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
@@ -70,6 +71,61 @@ func AdminMiddleware(secret string) gin.HandlerFunc {
 			return
 		}
 
+		c.Next()
+	}
+}
+
+// CORSMiddleware handles CORS for API requests
+func CORSMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
+		c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
+		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, accept, origin, Cache-Control, X-Requested-With")
+		c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS, GET, PUT, DELETE, PATCH")
+
+		if c.Request.Method == "OPTIONS" {
+			c.AbortWithStatus(204)
+			return
+		}
+
+		c.Next()
+	}
+}
+
+// RateLimitMiddleware implements basic rate limiting
+func RateLimitMiddleware(requestsPerMinute int) gin.HandlerFunc {
+	type clientRequests struct {
+		count     int
+		resetTime int64
+	}
+
+	clients := make(map[string]*clientRequests)
+
+	return func(c *gin.Context) {
+		clientIP := c.ClientIP()
+		now := time.Now().Unix()
+
+		cr, exists := clients[clientIP]
+		if !exists {
+			clients[clientIP] = &clientRequests{1, now + 60}
+			c.Next()
+			return
+		}
+
+		if now > cr.resetTime {
+			cr.count = 1
+			cr.resetTime = now + 60
+			c.Next()
+			return
+		}
+
+		if cr.count >= requestsPerMinute {
+			c.JSON(http.StatusTooManyRequests, gin.H{"error": "Rate limit exceeded"})
+			c.Abort()
+			return
+		}
+
+		cr.count++
 		c.Next()
 	}
 }
