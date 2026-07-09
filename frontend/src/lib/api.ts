@@ -181,6 +181,305 @@ class ApiClient {
       body: JSON.stringify(data),
     });
   }
+
+  // ============ VIP & LOYALTY ENDPOINTS ============
+
+  async getVIPStatus(): Promise<ApiResponse<VIPStatus>> {
+    return this.request('/api/vip/status');
+  }
+
+  async claimRakeback(): Promise<ApiResponse<{ amount: number }>> {
+    return this.request('/api/vip/rakeback/claim', {
+      method: 'POST',
+    });
+  }
+
+  async redeemPoints(points: number): Promise<ApiResponse<{ amount: number }>> {
+    return this.request('/api/vip/points/redeem', {
+      method: 'POST',
+      body: JSON.stringify({ points }),
+    });
+  }
+
+  async claimWelcomeBonus(): Promise<ApiResponse<{ bonusId: string; amount: number; wagerReq: number }>> {
+    return this.request('/api/vip/bonus/welcome/claim', {
+      method: 'POST',
+    });
+  }
+
+  async claimDepositBonus(depositAmount: number): Promise<ApiResponse<{ bonusId: string; amount: number; wagerReq: number }>> {
+    return this.request('/api/vip/bonus/deposit/claim', {
+      method: 'POST',
+      body: JSON.stringify({ amount: depositAmount }),
+    });
+  }
+
+  async getLeaderboard(period: string = 'weekly', limit: number = 100): Promise<ApiResponse<LeaderboardEntry[]>> {
+    return this.request(`/api/vip/leaderboard?period=${period}&limit=${limit}`);
+  }
+
+  async getPromotions(): Promise<ApiResponse<Promotion[]>> {
+    return this.request('/api/vip/promotions');
+  }
+
+  // ============ TOURNAMENT ENDPOINTS ============
+
+  async getTournaments(): Promise<ApiResponse<Tournament[]>> {
+    return this.request('/api/tournaments');
+  }
+
+  async getTournamentDetails(tournamentId: string): Promise<ApiResponse<TournamentDetails>> {
+    return this.request(`/api/tournaments/${tournamentId}`);
+  }
+
+  async registerTournament(tournamentId: string): Promise<ApiResponse<{ success: boolean }>> {
+    return this.request(`/api/tournaments/${tournamentId}/register`, {
+      method: 'POST',
+    });
+  }
+
+  async getTournamentLeaderboard(tournamentId: string): Promise<ApiResponse<LeaderboardEntry[]>> {
+    return this.request(`/api/tournaments/${tournamentId}/leaderboard`);
+  }
+
+  async getMyTournaments(): Promise<ApiResponse<Tournament[]>> {
+    return this.request('/api/tournaments/my');
+  }
+
+  async getTournamentResults(): Promise<ApiResponse<TournamentResult[]>> {
+    return this.request('/api/tournaments/results');
+  }
+
+  // ============ SPORTSBOOK ENDPOINTS ============
+
+  async getSports(): Promise<ApiResponse<Sport[]>> {
+    return this.request('/api/sportsbook/sports');
+  }
+
+  async getLeagues(sportId: string): Promise<ApiResponse<League[]>> {
+    return this.request(`/api/sportsbook/leagues?sportId=${sportId}`);
+  }
+
+  async getEvents(sportId: string, leagueId: string, date?: string): Promise<ApiResponse<SportsEvent[]>> {
+    let query = `?sportId=${sportId}&leagueId=${leagueId}`;
+    if (date) query += `&date=${date}`;
+    return this.request(`/api/sportsbook/events${query}`);
+  }
+
+  async getLiveEvents(sportId?: string): Promise<ApiResponse<SportsEvent[]>> {
+    const query = sportId ? `?sportId=${sportId}` : '';
+    return this.request(`/api/sportsbook/live${query}`);
+  }
+
+  async getEventDetails(eventId: string): Promise<ApiResponse<EventDetails>> {
+    return this.request(`/api/sportsbook/events/${eventId}`);
+  }
+
+  async placeSportsBet(eventId: string, marketId: string, selection: string, stake: number): Promise<ApiResponse<{ betId: string; potentialWin: number }>> {
+    return this.request('/api/sportsbook/bet', {
+      method: 'POST',
+      body: JSON.stringify({ eventId, marketId, selection, stake }),
+    });
+  }
+
+  async getMySportsBets(status?: string, page = 1): Promise<ApiResponse<PaginatedResponse<SportsBet>>> {
+    const query = status ? `?status=${status}&page=${page}` : `?page=${page}`;
+    return this.request(`/api/sportsbook/bets${query}`);
+  }
+
+  async getSportsBettingStats(): Promise<ApiResponse<BettingStats>> {
+    return this.request('/api/sportsbook/stats');
+  }
+
+  // ============ GAME AGGREGATOR ENDPOINTS ============
+
+  async getGameProviders(): Promise<ApiResponse<GameProvider[]>> {
+    return this.request('/api/games/providers');
+  }
+
+  async launchGame(gameId: string, mode: string = 'real'): Promise<ApiResponse<{ gameUrl: string; token: string }>> {
+    return this.request('/api/games/launch', {
+      method: 'POST',
+      body: JSON.stringify({ gameId, mode }),
+    });
+  }
+
+  async getJackpots(): Promise<ApiResponse<JackpotInfo>> {
+    return this.request('/api/games/jackpots');
+  }
+}
+
+// Types for new endpoints
+export interface VIPStatus {
+  level: number;
+  levelName: string;
+  totalWagered: number;
+  points: number;
+  rakebackPercent: number;
+  rakebackBalance: number;
+  benefits: VIPBenefits;
+  nextLevel?: {
+    level: number;
+    name: string;
+    minWagered: number;
+  };
+  progressToNext: number;
+}
+
+export interface VIPBenefits {
+  maxBet: number;
+  maxWin: number;
+  withdrawalLimit: number;
+  withdrawalFee: number;
+  cashbackPercent: number;
+  pointsMultiplier: number;
+  prioritySupport: boolean;
+  instantWithdraw: boolean;
+  personalHost: boolean;
+}
+
+export interface LeaderboardEntry {
+  rank: number;
+  userId: string;
+  username: string;
+  score: number;
+  wagered: number;
+  wins: number;
+}
+
+export interface Promotion {
+  id: string;
+  name: string;
+  description: string;
+  type: string;
+  bonusAmount: number;
+  wagerReq: number;
+  startDate: string;
+  endDate: string;
+}
+
+export interface Tournament {
+  id: string;
+  name: string;
+  description: string;
+  type: string;
+  status: string;
+  prizePool: number;
+  currency: string;
+  startTime: string;
+  endTime: string;
+  participantCount?: number;
+}
+
+export interface TournamentDetails extends Tournament {
+  minBet: number;
+  gameFilter: string[];
+  prizeDistribution: PrizeBreakdown[];
+  leaderboard: LeaderboardEntry[];
+}
+
+export interface PrizeBreakdown {
+  position: number;
+  percent: number;
+  amount: number;
+}
+
+export interface TournamentResult {
+  tournamentId: string;
+  tournamentName: string;
+  position: number;
+  prizeAmount: number;
+  currency: string;
+  date: string;
+}
+
+export interface Sport {
+  id: string;
+  name: string;
+  shortName: string;
+  icon: string;
+}
+
+export interface League {
+  id: string;
+  sportId: string;
+  name: string;
+  country: string;
+  logo: string;
+}
+
+export interface SportsEvent {
+  id: string;
+  sportId: string;
+  leagueId: string;
+  homeTeam: string;
+  awayTeam: string;
+  startTime: string;
+  status: string;
+  homeScore?: number;
+  awayScore?: number;
+  period?: string;
+  timeRemaining?: string;
+}
+
+export interface EventDetails {
+  event: SportsEvent;
+  markets: Market[];
+}
+
+export interface Market {
+  id: string;
+  name: string;
+  marketType: string;
+  outcomes: Outcome[];
+  suspended: boolean;
+}
+
+export interface Outcome {
+  id: string;
+  name: string;
+  odds: number;
+  line?: number;
+}
+
+export interface SportsBet {
+  id: string;
+  eventId: string;
+  eventName: string;
+  selection: string;
+  odds: number;
+  stake: number;
+  potentialWin: number;
+  actualWin?: number;
+  status: string;
+  createdAt: string;
+}
+
+export interface BettingStats {
+  totalBets: number;
+  pendingBets: number;
+  wonBets: number;
+  lostBets: number;
+  totalStaked: number;
+  totalWon: number;
+  profit: number;
+  winRate: number;
+}
+
+export interface GameProvider {
+  id: string;
+  name: string;
+  code: string;
+  logo: string;
+  gameCount: number;
+  isAggregator: boolean;
+  status: string;
+}
+
+export interface JackpotInfo {
+  mini: number;
+  major: number;
+  grand: number;
 }
 
 // ============ Sportsbook Endpoints ============

@@ -1,595 +1,972 @@
 package services
 
 import (
+	"context"
 	"fmt"
+	"math"
+	"sort"
+	"strconv"
+	"strings"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 
 	"github.com/tigercasino/backend/internal/models"
 )
 
-// VIPService handles VIP levels, rakeback, and loyalty rewards
+// VIPService handles VIP programs, rakeback, and loyalty rewards
 type VIPService struct {
-	db *gorm.DB
+	db           *gorm.DB
+	redis        *redis.Client
+	config       *VIPConfig
+	levels       map[int]*VIPLevel
+	bonusCache   *BonusCache
 }
 
-func NewVIPService(db *gorm.DB) *VIPService {
-	return &VIPService{db: db}
+type VIPConfig struct {
+	// Rakeback settings
+	BaseRakeback     float64   // Base rakeback percentage (e.g., 3.5)
+	MaxRakeback      float64   // Maximum rakeback (e.g., 25.0)
+	RakeContribution float64   // How much rake = 1 point (e.g., 1 USD)
+	
+	// Level thresholds (total wagered)
+	LevelThresholds []float64
+	
+	// Level benefits
+	LevelBenefits map[int]*LevelBenefits
+	
+	// Bonus settings
+	WelcomeBonusAmount    float64
+	WelcomeBonusWager    float64  // Multiplier (e.g., 10x)
+	DepositBonusPercent   float64
+	DepositBonusMax      float64
+	
+	// Cashback settings
+	DailyCashbackPercent float64
+	WeeklyCashbackPercent float64
+	MonthlyCashbackPercent float64
+	
+	// Points settings
+	PointsPerWager      float64   // Points earned per $1 wagered
+	PointsRedemptionRate float64   // $ value per 100 points
+	
+	// Time settings
+	PromotionCheckInterval time.Duration
+	LevelUpdateInterval   time.Duration
 }
 
-// ============ VIP LEVELS ============
-
-type VIPLevelInfo struct {
-	Level                    int     `json:"level"`
-	Name                     string  `json:"name"`
-	RequiredPoints          float64 `json:"required_points"`
-	DepositBonusPercent     float64 `json:"deposit_bonus_percent"`
-	WithdrawalBonusPercent float64 `json:"withdrawal_bonus_percent"`
-	RakebackPercent         float64 `json:"rakeback_percent"`
-	MaxDailyWithdrawal     float64 `json:"max_daily_withdrawal"`
-	PrioritySupport        bool    `json:"priority_support"`
-	MonthlyBonus          float64 `json:"monthly_bonus"`
-	WeeklyCashback         float64 `json:"weekly_cashback"`
+type VIPLevel struct {
+	Level             int
+	Name              string
+	MinWagered        float64
+	RakebackPercent   float64
+	WeeklyCashback    float64
+	MonthlyCashback   float64
+	MaxWithdrawal     float64
+	WithdrawalFee     float64
+	PersonalHost      bool
+	ExclusiveEvents   bool
+	CustomLimits      bool
 }
 
-func (s *VIPService) GetAllVIPLevels() ([]VIPLevelInfo, error) {
-	var levels []models.VIPLevel
-	err := s.db.Order("level ASC").Find(&levels).Error
-	if err != nil {
-		return nil, err
+type LevelBenefits struct {
+	MaxBet           float64
+	MaxWin           float64
+	WithdrawalLimit  float64
+	WithdrawalFee    float64
+	DailyWithdrawalLimit int
+	MonthlyWithdrawalLimit int
+	RakebackPercent  float64
+	CashbackPercent  float64
+	PointsMultiplier float64
+	InstantWithdraw  bool
+	PrioritySupport  bool
+	PersonalHost     bool
+	ExclusiveBonuses bool
+	TournamentAccess bool
+	CustomPromoCodes bool
+}
+
+type BonusCache struct {
+	mu      sync.RWMutex
+	bonuses map[string]*ActiveBonus // userID + bonusID -> bonus
+}
+
+type ActiveBonus struct {
+	UserID      uuid.UUID
+	BonusID     uuid.UUID
+	BonusType   string // welcome, deposit, cashback, free_spins, loyalty
+	Amount      float64
+	Wagered     float64
+	WagerReq    float64
+	ExpiresAt   time.Time
+	Status      string // active, completed, expired, cancelled
+	CreatedAt   time.Time
+}
+
+// DefaultVIPConfig returns default VIP configuration
+func DefaultVIPConfig() *VIPConfig {
+	return &VIPConfig{
+		BaseRakeback:     3.5,
+		MaxRakeback:      25.0,
+		RakeContribution: 1.0, // $1 rake = 1 point
+		
+		LevelThresholds: []float64{
+			0,      // Bronze
+			1000,   // Silver
+			5000,   // Gold
+			25000,  // Platinum
+			100000, // Diamond
+			500000, // VIP
+		},
+		
+		LevelBenefits: map[int]*LevelBenefits{
+			0: { // Bronze
+				MaxBet:            1000,
+				MaxWin:            5000,
+				WithdrawalLimit:   10000,
+				WithdrawalFee:     2.0,
+				DailyWithdrawalLimit: 3,
+				RakebackPercent:   3.5,
+				CashbackPercent:   0,
+				PointsMultiplier:  1.0,
+			},
+			1: { // Silver
+				MaxBet:            2500,
+				MaxWin:            12500,
+				WithdrawalLimit:   25000,
+				WithdrawalFee:     1.5,
+				DailyWithdrawalLimit: 5,
+				RakebackPercent:   5.0,
+				CashbackPercent:   2.0,
+				PointsMultiplier:  1.25,
+			},
+			2: { // Gold
+				MaxBet:            5000,
+				MaxWin:            25000,
+				WithdrawalLimit:   50000,
+				WithdrawalFee:     1.0,
+				DailyWithdrawalLimit: 10,
+				RakebackPercent:   7.5,
+				CashbackPercent:   3.0,
+				PointsMultiplier:  1.5,
+				PrioritySupport:   true,
+			},
+			3: { // Platinum
+				MaxBet:            10000,
+				MaxWin:            50000,
+				WithdrawalLimit:   100000,
+				WithdrawalFee:     0.5,
+				DailyWithdrawalLimit: 20,
+				RakebackPercent:   10.0,
+				CashbackPercent:   5.0,
+				PointsMultiplier:  2.0,
+				PrioritySupport:   true,
+				InstantWithdraw:   true,
+			},
+			4: { // Diamond
+				MaxBet:            25000,
+				MaxWin:            125000,
+				WithdrawalLimit:   250000,
+				WithdrawalFee:     0,
+				DailyWithdrawalLimit: 50,
+				RakebackPercent:   15.0,
+				CashbackPercent:   7.5,
+				PointsMultiplier:  2.5,
+				PrioritySupport:   true,
+				InstantWithdraw:   true,
+				ExclusiveBonuses:  true,
+				TournamentAccess: true,
+			},
+			5: { // VIP
+				MaxBet:            100000,
+				MaxWin:            500000,
+				WithdrawalLimit:   1000000,
+				WithdrawalFee:     0,
+				DailyWithdrawalLimit: 100,
+				RakebackPercent:   25.0,
+				CashbackPercent:   10.0,
+				PointsMultiplier:  3.0,
+				PrioritySupport:   true,
+				InstantWithdraw:   true,
+				ExclusiveBonuses:  true,
+				TournamentAccess: true,
+				PersonalHost:      true,
+				CustomPromoCodes: true,
+			},
+		},
+		
+		WelcomeBonusAmount:   100,
+		WelcomeBonusWager:    10,
+		DepositBonusPercent:   100,
+		DepositBonusMax:      1000,
+		
+		DailyCashbackPercent:   0,
+		WeeklyCashbackPercent:   5.0,
+		MonthlyCashbackPercent: 10.0,
+		
+		PointsPerWager:       1.0,
+		PointsRedemptionRate: 0.01, // $0.01 per point
+		
+		PromotionCheckInterval: time.Hour,
+		LevelUpdateInterval:   24 * time.Hour,
 	}
-
-	result := make([]VIPLevelInfo, len(levels))
-	for i, l := range levels {
-		result[i] = VIPLevelInfo{
-			Level:                    l.Level,
-			Name:                     l.Name,
-			RequiredPoints:          l.RequiredPoints,
-			DepositBonusPercent:     l.DepositBonusPercent,
-			WithdrawalBonusPercent: l.WithdrawalBonusPercent,
-			RakebackPercent:         l.RakebackPercent,
-			MaxDailyWithdrawal:     l.MaxDailyWithdrawal,
-			PrioritySupport:        l.PrioritySupport,
-		}
-	}
-
-	return result, nil
 }
 
-func (s *VIPService) GetUserVIPLevel(userID uuid.UUID) (*VIPLevelInfo, error) {
+func NewVIPLevel(level int) *VIPLevel {
+	names := []string{"Bronze", "Silver", "Gold", "Platinum", "Diamond", "VIP"}
+	name := names[level]
+	if level >= len(names) {
+		name = "VIP"
+	}
+	
+	return &VIPLevel{
+		Level:           level,
+		Name:            name,
+		MinWagered:      float64(level) * 100000,
+		RakebackPercent: 3.5 + float64(level)*2.5,
+		WeeklyCashback:  float64(level) * 1.0,
+		MonthlyCashback: float64(level) * 2.0,
+	}
+}
+
+// NewVIPService creates a new VIP service
+func NewVIPService(db *gorm.DB, redisClient *redis.Client, config *VIPConfig) *VIPService {
+	if config == nil {
+		config = DefaultVIPConfig()
+	}
+	
+	service := &VIPService{
+		db:         db,
+		redis:      redisClient,
+		config:     config,
+		bonusCache: &BonusCache{bonuses: make(map[string]*ActiveBonus)},
+	}
+	
+	// Initialize VIP levels
+	service.levels = make(map[int]*VIPLevel)
+	for i := 0; i <= 5; i++ {
+		service.levels[i] = NewVIPLevel(i)
+	}
+	
+	return service
+}
+
+// ============ USER VIP STATUS ============
+
+// GetUserVIPStatus returns user's current VIP status
+func (s *VIPService) GetUserVIPStatus(ctx context.Context, userID uuid.UUID) (*VIPUserStatus, error) {
 	var user models.User
 	if err := s.db.First(&user, userID).Error; err != nil {
 		return nil, err
 	}
-
-	var level models.VIPLevel
-	err := s.db.Where("level = ?", user.VIPLevel).First(&level).Error
-	if err != nil {
-		return nil, err
+	
+	// Calculate total wagered
+	var totalWagered float64
+	s.db.Model(&models.GameHistory{}).
+		Where("user_id = ?", userID).
+		Select("COALESCE(SUM(bet_amount), 0)").
+		Scan(&totalWagered)
+	
+	// Get current level
+	currentLevel := s.calculateLevel(totalWagered)
+	level := s.levels[currentLevel]
+	
+	// Get benefits
+	benefits := s.config.LevelBenefits[currentLevel]
+	
+	// Get points
+	var points int64
+	s.db.Model(&models.LoyaltyPoints{}).
+		Where("user_id = ?", userID).
+		Select("COALESCE(SUM(points), 0)").
+		Scan(&points)
+	
+	// Get next level info
+	nextLevel := currentLevel + 1
+	var nextLevelInfo *VIPLevel
+	var progressToNext float64
+	
+	if nextLevel <= 5 {
+		nextLevelInfo = s.levels[nextLevel]
+		if currentLevel < 5 {
+			threshold := s.config.LevelThresholds[currentLevel]
+			nextThreshold := s.config.LevelThresholds[nextLevel]
+			progressToNext = (totalWagered - threshold) / (nextThreshold - threshold) * 100
+		}
 	}
-
-	return &VIPLevelInfo{
-		Level:                    level.Level,
-		Name:                     level.Name,
-		RequiredPoints:          level.RequiredPoints,
-		DepositBonusPercent:     level.DepositBonusPercent,
-		WithdrawalBonusPercent: level.WithdrawalBonusPercent,
-		RakebackPercent:         level.RakebackPercent,
-		MaxDailyWithdrawal:     level.MaxDailyWithdrawal,
-		PrioritySupport:        level.PrioritySupport,
+	
+	// Get rakeback balance
+	var rakebackBalance float64
+	s.db.Model(&models.RakebackBalance{}).
+		Where("user_id = ?", userID).
+		Select("COALESCE(SUM(available), 0)").
+		Scan(&rakebackBalance)
+	
+	return &VIPUserStatus{
+		UserID:          userID,
+		Level:           currentLevel,
+		LevelName:       level.Name,
+		TotalWagered:    totalWagered,
+		Points:          points,
+		RakebackPercent: level.RakebackPercent,
+		RakebackBalance: rakebackBalance,
+		Benefits:        benefits,
+		NextLevel:       nextLevelInfo,
+		ProgressToNext:  math.Min(progressToNext, 100),
 	}, nil
 }
 
-// ============ RAKEBACK ============
-
-// RakebackEarned tracks rakeback that users have earned
-type RakebackEarned struct {
-	ID          uuid.UUID `gorm:"type:uuid;primary_key"`
-	UserID      uuid.UUID `gorm:"type:uuid;not null;index"`
-	Amount      float64  `gorm:"not null"`
-	PeriodStart time.Time
-	PeriodEnd   time.Time
-	Claimed     bool     `gorm:"default:false"`
-	ClaimedAt   *time.Time
-	CreatedAt   time.Time
+type VIPUserStatus struct {
+	UserID          uuid.UUID
+	Level           int
+	LevelName       string
+	TotalWagered    float64
+	Points          int64
+	RakebackPercent float64
+	RakebackBalance float64
+	Benefits        *LevelBenefits
+	NextLevel       *VIPLevel
+	ProgressToNext  float64
 }
 
-// CalculateRakeback calculates the rakeback a user has earned based on their wagers
-func (s *VIPService) CalculateRakeback(userID uuid.UUID) (float64, error) {
-	var user models.User
-	if err := s.db.First(&user, userID).Error; err != nil {
-		return 0, err
-	}
-
-	// Get user's VIP level rakeback percentage
-	var vipLevel models.VIPLevel
-	err := s.db.Where("level = ?", user.VIPLevel).First(&vipLevel).Error
-	if err != nil {
-		return 0, err
-	}
-
-	rakebackPercent := vipLevel.RakebackPercent / 100.0
-
-	// Calculate wagers since last rakeback calculation
-	var totalWagered float64
-	weekAgo := time.Now().AddDate(0, 0, -7)
-
-	// Sum up bets from the last week
-	rows, err := s.db.Table("bets").
-		Where("user_id = ? AND created_at >= ? AND status IN ('won', 'lost')", userID, weekAgo).
-		Select("COALESCE(SUM(bet_amount), 0)").Rows()
-	if err != nil {
-		return 0, err
-	}
-	defer rows.Close()
-
-	if rows.Next() {
-		rows.Scan(&totalWagered)
-	}
-
-	// Calculate rakeback (typically 0.1% to 0.5% of wagers)
-	rakeback := totalWagered * rakebackPercent
-
-	return rakeback, nil
-}
-
-// ClaimRakeback claims the user's accumulated rakeback
-func (s *VIPService) ClaimRakeback(userID uuid.UUID) (float64, error) {
-	rakeback, err := s.CalculateRakeback(userID)
-	if err != nil {
-		return 0, err
-	}
-
-	if rakeback <= 0 {
-		return 0, nil
-	}
-
-	// Create rakeback record
-	now := time.Now()
-	weekAgo := now.AddDate(0, 0, -7)
-
-	record := RakebackEarned{
-		ID:          uuid.New(),
-		UserID:      userID,
-		Amount:      rakeback,
-		PeriodStart: weekAgo,
-		PeriodEnd:   now,
-		Claimed:     true,
-		ClaimedAt:   &now,
-	}
-
-	if err := s.db.Create(&record).Error; err != nil {
-		return 0, err
-	}
-
-	// Credit to user balance
-	userService := NewUserService(s.db)
-	if err := userService.UpdateBalance(userID, rakeback); err != nil {
-		return 0, err
-	}
-
-	// Create transaction record
-	tx := models.Transaction{
-		ID:          uuid.New(),
-		UserID:      userID,
-		Type:        "rakeback",
-		Amount:      rakeback,
-		Currency:    "USD",
-		Status:      "confirmed",
-		Description: "Weekly rakeback bonus",
-	}
-	s.db.Create(&tx)
-
-	return rakeback, nil
-}
-
-// GetUnclaimedRakeback returns the amount of unclaimed rakeback
-func (s *VIPService) GetUnclaimedRakeback(userID uuid.UUID) (float64, error) {
-	var user models.User
-	if err := s.db.First(&user, userID).Error; err != nil {
-		return 0, err
-	}
-
-	// Get VIP level
-	var vipLevel models.VIPLevel
-	err := s.db.Where("level = ?", user.VIPLevel).First(&vipLevel).Error
-	if err != nil {
-		return 0, err
-	}
-
-	rakebackPercent := vipLevel.RakebackPercent / 100.0
-
-	// Calculate unclaimed wagered amount
-	var unclaimedWagered float64
-	weekAgo := time.Now().AddDate(0, 0, -7)
-
-	s.db.Table("bets").
-		Where("user_id = ? AND created_at >= ? AND status IN ('won', 'lost')", userID, weekAgo).
-		Select("COALESCE(SUM(bet_amount), 0)").Scan(&unclaimedWagered)
-
-	return unclaimedWagered * rakebackPercent, nil
-}
-
-// ============ DEPOSIT BONUSES ============
-
-type DepositBonus struct {
-	ID            uuid.UUID `gorm:"type:uuid;primary_key"`
-	UserID        uuid.UUID `gorm:"type:uuid;not null;index"`
-	Amount        float64   `gorm:"not null"`
-	BonusAmount  float64   `gorm:"not null"`
-	WagerRequired float64  `gorm:"not null"`
-	Wagered      float64   `gorm:"default:0"`
-	Status       string    `gorm:"default:'active'"` // active, completed, expired
-	ExpiresAt    time.Time
-	CreatedAt    time.Time
-}
-
-// CalculateDepositBonus calculates bonus for a deposit based on VIP level
-func (s *VIPService) CalculateDepositBonus(userID uuid.UUID, depositAmount float64) (float64, error) {
-	var user models.User
-	if err := s.db.First(&user, userID).Error; err != nil {
-		return 0, err
-	}
-
-	var vipLevel models.VIPLevel
-	err := s.db.Where("level = ?", user.VIPLevel).First(&vipLevel).Error
-	if err != nil {
-		return 0, err
-	}
-
-	bonusAmount := depositAmount * (vipLevel.DepositBonusPercent / 100.0)
-	return bonusAmount, nil
-}
-
-// CreateDepositBonus creates a new deposit bonus for a user
-func (s *VIPService) CreateDepositBonus(userID uuid.UUID, depositAmount, bonusAmount float64) (*DepositBonus, error) {
-	// Calculate wager requirement (typically 3x the bonus amount)
-	wagerRequired := bonusAmount * 3.0
-	expiresAt := time.Now().AddDate(0, 1, 0) // Expires in 1 month
-
-	bonus := DepositBonus{
-		ID:            uuid.New(),
-		UserID:        userID,
-		Amount:        depositAmount,
-		BonusAmount:  bonusAmount,
-		WagerRequired: wagerRequired,
-		ExpiresAt:    expiresAt,
-	}
-
-	if err := s.db.Create(&bonus).Error; err != nil {
-		return nil, err
-	}
-
-	// Credit the bonus
-	userService := NewUserService(s.db)
-	userService.UpdateBalance(userID, bonusAmount)
-
-	return &bonus, nil
-}
-
-// UpdateWagerProgress updates the wager progress for active deposit bonuses
-func (s *VIPService) UpdateWagerProgress(userID uuid.UUID, wagerAmount float64) error {
-	var bonuses []DepositBonus
-	s.db.Where("user_id = ? AND status = ?", userID, "active").Find(&bonuses)
-
-	for i := range bonuses {
-		bonuses[i].Wagered += wagerAmount
-		if bonuses[i].Wagered >= bonuses[i].WagerRequired {
-			bonuses[i].Status = "completed"
+func (s *VIPService) calculateLevel(totalWagered float64) int {
+	for i := len(s.config.LevelThresholds) - 1; i >= 0; i-- {
+		if totalWagered >= s.config.LevelThresholds[i] {
+			return i
 		}
-		s.db.Save(&bonuses[i])
 	}
+	return 0
+}
 
+// ============ RAKEBACK SYSTEM ============
+
+// CalculateRake calculates rake from a bet
+func (s *VIPService) CalculateRake(betAmount float64, gameType string) float64 {
+	// Different game types have different rake percentages
+	rakePercent := map[string]float64{
+		"slots":       0.05,  // 5% rake
+		"table_games": 0.02,  // 2% rake
+		"live_casino": 0.03,  // 3% rake
+		"sports":      0.04,  // 4% rake
+		"poker":       0.05,  // 5% rake
+	}
+	
+	percent := rakePercent[gameType]
+	if percent == 0 {
+		percent = 0.05 // Default 5%
+	}
+	
+	return betAmount * percent
+}
+
+// ProcessRakeback processes rakeback for a user after a bet
+func (s *VIPService) ProcessRakeback(ctx context.Context, userID uuid.UUID, betAmount float64, gameType string) error {
+	rake := s.CalculateRake(betAmount, gameType)
+	if rake <= 0 {
+		return nil
+	}
+	
+	// Get user's VIP level
+	status, err := s.GetUserVIPStatus(ctx, userID)
+	if err != nil {
+		return err
+	}
+	
+	// Calculate rakeback based on level
+	rakebackAmount := rake * (status.RakebackPercent / 100)
+	
+	// Create rakeback balance record
+	rakeback := models.RakebackBalance{
+		ID:          uuid.New(),
+		UserID:      userID,
+		Amount:      rakebackAmount,
+		Available:   rakebackAmount,
+		Locked:     0,
+		Source:     gameType,
+		ExternalRef: uuid.New().String(),
+		CreatedAt:   time.Now(),
+		ExpiresAt:  time.Now().Add(30 * 24 * time.Hour), // 30 days expiry
+	}
+	
+	if err := s.db.Create(&rakeback).Error; err != nil {
+		return err
+	}
+	
+	// Award loyalty points
+	points := int64(rake * s.config.PointsPerWager * status.Benefits.PointsMultiplier)
+	if points > 0 {
+		s.AwardPoints(ctx, userID, points, "rakeback")
+	}
+	
 	return nil
 }
 
-// GetActiveBonuses returns all active bonuses for a user
-func (s *VIPService) GetActiveBonuses(userID uuid.UUID) ([]DepositBonus, error) {
-	var bonuses []DepositBonus
-	err := s.db.Where("user_id = ? AND status = ?", userID, "active").Find(&bonuses).Error
-	return bonuses, err
-}
-
-// ============ WEEKLY/MONTHLY CASHBACK ============
-
-type CashbackConfig struct {
-	ID              uuid.UUID `gorm:"type:uuid;primary_key"`
-	Level           int       `gorm:"uniqueIndex;not null"`
-	Name            string    `gorm:"not null"`
-	CashbackPercent float64   `gorm:"not null"`
-	MinWagerRequired float64 `gorm:"default:0"`
-	MaxCashback     float64   `gorm:"default:0"` // 0 = unlimited
-	CreatedAt       time.Time
-}
-
-type UserCashback struct {
-	ID          uuid.UUID `gorm:"type:uuid;primary_key"`
-	UserID      uuid.UUID `gorm:"type:uuid;not null;index"`
-	Amount      float64   `gorm:"not null"`
-	Period      string    `gorm:"not null"` // weekly, monthly
-	PeriodStart time.Time
-	PeriodEnd   time.Time
-	Claimed     bool      `gorm:"default:false"`
-	ClaimedAt   *time.Time
-	CreatedAt   time.Time
-}
-
-// CalculateWeeklyCashback calculates cashback for the week
-func (s *VIPService) CalculateWeeklyCashback(userID uuid.UUID) (float64, error) {
-	weekAgo := time.Now().AddDate(0, 0, -7)
-
-	var user models.User
-	if err := s.db.First(&user, userID).Error; err != nil {
+// ClaimRakeback allows user to claim their available rakeback
+func (s *VIPService) ClaimRakeback(ctx context.Context, userID uuid.UUID) (float64, error) {
+	var available float64
+	s.db.Model(&models.RakebackBalance{}).
+		Where("user_id = ? AND available > 0 AND expires_at > ?", userID, time.Now()).
+		Select("COALESCE(SUM(available), 0)").
+		Scan(&available)
+	
+	if available <= 0 {
+		return 0, fmt.Errorf("no rakeback available to claim")
+	}
+	
+	// Credit user wallet
+	var wallet models.Wallet
+	if err := s.db.Where("user_id = ? AND currency = ?", userID, "USD").First(&wallet).Error; err != nil {
 		return 0, err
 	}
-
-	// Get cashback config for user's level
-	var config CashbackConfig
-	err := s.db.Where("level = ?", user.VIPLevel).First(&config).Error
-	if err != nil {
-		// Default cashback
-		config.CashbackPercent = 0.1 // 0.1%
+	
+	tx := s.db.Begin()
+	
+	wallet.Balance += available
+	if err := tx.Save(&wallet).Error; err != nil {
+		tx.Rollback()
+		return 0, err
 	}
-
-	// Calculate net loss (wagers - wins) for the week
-	var totalWagered, totalWon float64
-
-	s.db.Table("bets").
-		Where("user_id = ? AND created_at >= ?", userID, weekAgo).
-		Select("COALESCE(SUM(bet_amount), 0)").Scan(&totalWagered)
-
-	s.db.Table("bets").
-		Where("user_id = ? AND created_at >= ? AND status = ?", userID, weekAgo, "won").
-		Select("COALESCE(SUM(win_amount), 0)").Scan(&totalWon)
-
-	netLoss := totalWagered - totalWon
-	if netLoss < 0 || config.CashbackPercent == 0 {
-		return 0, nil
+	
+	// Mark rakeback as claimed
+	if err := tx.Model(&models.RakebackBalance{}).
+		Where("user_id = ? AND available > 0", userID).
+		Update("available", 0).Error; err != nil {
+		tx.Rollback()
+		return 0, err
 	}
-
-	cashback := netLoss * (config.CashbackPercent / 100.0)
-
-	// Apply max cap if set
-	if config.MaxCashback > 0 && cashback > config.MaxCashback {
-		cashback = config.MaxCashback
+	
+	tx.Commit()
+	
+	// Create transaction record
+	transaction := models.Transaction{
+		ID:        uuid.New(),
+		UserID:    userID,
+		Type:      "rakeback",
+		Amount:    available,
+		Status:    "completed",
+		CreatedAt: time.Now(),
 	}
-
-	return cashback, nil
+	s.db.Create(&transaction)
+	
+	return available, nil
 }
 
-// ClaimWeeklyCashback claims weekly cashback
-func (s *VIPService) ClaimWeeklyCashback(userID uuid.UUID) (float64, error) {
-	cashback, err := s.CalculateWeeklyCashback(userID)
-	if err != nil || cashback <= 0 {
-		return cashback, err
-	}
+// ============ LOYALTY POINTS ============
 
-	// Check if already claimed
-	weekAgo := time.Now().AddDate(0, 0, -7)
-	var existing UserCashback
-	err = s.db.Where("user_id = ? AND period = ? AND period_start >= ?", userID, "weekly", weekAgo).First(&existing).Error
-	if err == nil && existing.Claimed {
-		return 0, fmt.Errorf("cashback already claimed for this period")
-	}
-
-	// Create cashback record
-	now := time.Now()
-	userCashback := UserCashback{
-		ID:          uuid.New(),
-		UserID:      userID,
-		Amount:      cashback,
-		Period:      "weekly",
-		PeriodStart: weekAgo,
-		PeriodEnd:   now,
-		Claimed:     true,
-		ClaimedAt:   &now,
-	}
-
-	s.db.Create(&userCashback)
-
-	// Credit user
-	userService := NewUserService(s.db)
-	userService.UpdateBalance(userID, cashback)
-
-	// Create transaction
-	tx := models.Transaction{
-		ID:          uuid.New(),
-		UserID:      userID,
-		Type:        "cashback",
-		Amount:      cashback,
-		Currency:    "USD",
-		Status:      "confirmed",
-		Description: "Weekly cashback",
-	}
-	s.db.Create(&tx)
-
-	return cashback, nil
-}
-
-// ============ VIP POINT TRACKING ============
-
-// VIPPointsEvent tracks VIP point earning events
-type VIPPointsEvent struct {
-	ID        uuid.UUID `gorm:"type:uuid;primary_key"`
-	UserID    uuid.UUID `gorm:"type:uuid;not null;index"`
-	Points    float64   `gorm:"not null"`
-	EventType string    `gorm:"not null"` // wager, deposit, bonus, referral
-	EventID   string    // Reference to bet/deposit ID
-	CreatedAt time.Time
-}
-
-// AddVIPPoints adds VIP points for a user
-func (s *VIPService) AddVIPPoints(userID uuid.UUID, points float64, eventType string, eventID string) error {
-	// Create points event
-	event := VIPPointsEvent{
+// AwardPoints awards loyalty points to a user
+func (s *VIPService) AwardPoints(ctx context.Context, userID uuid.UUID, points int64, source string) error {
+	pointsRecord := models.LoyaltyPoints{
 		ID:        uuid.New(),
 		UserID:    userID,
 		Points:    points,
-		EventType: eventType,
-		EventID:   eventID,
+		Source:    source,
+		CreatedAt: time.Now(),
 	}
-
-	if err := s.db.Create(&event).Error; err != nil {
-		return err
-	}
-
-	// Update user's VIP points
-	userService := NewUserService(s.db)
-	var user models.User
-	s.db.First(&user, userID)
-	newPoints := user.VIPPoints + points
-	s.db.Model(&user).Update("vip_points", newPoints)
-
-	// Check for level upgrade
-	s.CheckLevelUpgrade(userID)
-
-	return nil
+	
+	return s.db.Create(&pointsRecord).Error
 }
 
-// CheckLevelUpgrade checks if user qualifies for a level upgrade
-func (s *VIPService) CheckLevelUpgrade(userID uuid.UUID) error {
-	var user models.User
-	if err := s.db.First(&user, userID).Error; err != nil {
-		return err
+// RedeemPoints allows user to redeem points for bonus money
+func (s *VIPService) RedeemPoints(ctx context.Context, userID uuid.UUID, points int64) (float64, error) {
+	// Check available points
+	var availablePoints int64
+	s.db.Model(&models.LoyaltyPoints{}).
+		Where("user_id = ?", userID).
+		Select("COALESCE(SUM(points), 0)").
+		Scan(&availablePoints)
+	
+	if availablePoints < points {
+		return 0, fmt.Errorf("insufficient points")
 	}
-
-	// Get all VIP levels ordered by level
-	var levels []models.VIPLevel
-	s.db.Order("level DESC").Find(&levels)
-
-	for _, level := range levels {
-		if user.VIPPoints >= level.RequiredPoints && user.VIPLevel < level.Level {
-			// Upgrade user
-			s.db.Model(&user).Update("vip_level", level.Level)
-
-			// Create notification
-			// In production, this would trigger a notification system
-			return nil
-		}
+	
+	// Calculate redemption value
+	redemptionValue := float64(points) * s.config.PointsRedemptionRate
+	
+	// Deduct points
+	tx := s.db.Begin()
+	
+	// Create negative points record
+	pointsRecord := models.LoyaltyPoints{
+		ID:        uuid.New(),
+		UserID:    userID,
+		Points:    -points,
+		Source:    "redemption",
+		CreatedAt: time.Now(),
 	}
-
-	return nil
-}
-
-// GetVIPProgress returns the user's progress towards the next VIP level
-func (s *VIPService) GetVIPProgress(userID uuid.UUID) (map[string]interface{}, error) {
-	var user models.User
-	if err := s.db.First(&user, userID).Error; err != nil {
-		return nil, err
-	}
-
-	var currentLevel, nextLevel models.VIPLevel
-	s.db.Where("level = ?", user.VIPLevel).First(&currentLevel)
-
-	// Get next level
-	s.db.Where("level = ?", user.VIPLevel+1).First(&nextLevel)
-
-	progress := map[string]interface{}{
-		"current_level":     currentLevel.Level,
-		"current_level_name": currentLevel.Name,
-		"current_points":     user.VIPPoints,
-		"rakeback_percent":   currentLevel.RakebackPercent,
-	}
-
-	if nextLevel.Level > 0 {
-		pointsNeeded := nextLevel.RequiredPoints - user.VIPPoints
-		progress["next_level"] = nextLevel.Level
-		progress["next_level_name"] = nextLevel.Name
-		progress["points_needed"] = pointsNeeded
-		progress["progress_percent"] = (user.VIPPoints / nextLevel.RequiredPoints) * 100
-	} else {
-		progress["next_level"] = nil
-		progress["is_max_level"] = true
-	}
-
-	return progress, nil
-}
-
-// ============ REFERRAL SYSTEM ============
-
-type ReferralBonus struct {
-	ID              uuid.UUID `gorm:"type:uuid;primary_key"`
-	ReferrerID      uuid.UUID `gorm:"type:uuid;not null;index"`
-	RefereeID      uuid.UUID `gorm:"type:uuid;not null;index"`
-	CommissionPercent float64 `gorm:"not null"`
-	TotalEarned    float64   `gorm:"default:0"`
-	RefereeDeposited float64 `gorm:"default:0"`
-	Status         string    `gorm:"default:'active'"` // active, completed
-	CreatedAt      time.Time
-}
-
-// GetReferralBonus calculates referral bonus for a user
-func (s *VIPService) GetReferralBonus(referrerID uuid.UUID, refereeDeposit float64) (float64, error) {
-	// Default referral commission is 10%
-	commissionPercent := 10.0
-
-	// Check if referrer has elevated referral bonus from VIP level
-	var referrer models.User
-	if err := s.db.First(&referrer, referrerID).Error; err != nil {
+	
+	if err := tx.Create(&pointsRecord).Error; err != nil {
+		tx.Rollback()
 		return 0, err
 	}
-
-	// VIP Diamond+ might have higher commission
-	if referrer.VIPLevel >= 4 {
-		commissionPercent = 15.0
+	
+	// Credit bonus to user wallet
+	var wallet models.Wallet
+	if err := tx.Where("user_id = ? AND currency = ?", userID, "USD").First(&wallet).Error; err != nil {
+		tx.Rollback()
+		return 0, err
 	}
-
-	bonus := refereeDeposit * (commissionPercent / 100.0)
-	return bonus, nil
+	
+	wallet.Balance += redemptionValue
+	if err := tx.Save(&wallet).Error; err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+	
+	tx.Commit()
+	
+	return redemptionValue, nil
 }
 
-// CreateReferralBonus creates a referral bonus record
-func (s *VIPService) CreateReferralBonus(referrerID, refereeID uuid.UUID, deposit float64) (*ReferralBonus, error) {
-	bonus, err := s.GetReferralBonus(referrerID, deposit)
-	if err != nil {
+// ============ BONUS SYSTEM ============
+
+// ClaimWelcomeBonus claims the welcome bonus for new users
+func (s *VIPService) ClaimWelcomeBonus(ctx context.Context, userID uuid.UUID) (*BonusResult, error) {
+	// Check if already claimed
+	var existingBonus int64
+	s.db.Model(&models.BonusClaim{}).
+		Where("user_id = ? AND bonus_type = ?", userID, "welcome").
+		Count(&existingBonus)
+	
+	if existingBonus > 0 {
+		return nil, fmt.Errorf("welcome bonus already claimed")
+	}
+	
+	bonusAmount := s.config.WelcomeBonusAmount
+	wagerReq := bonusAmount * s.config.WelcomeBonusWager
+	
+	// Credit bonus
+	var wallet models.Wallet
+	if err := s.db.Where("user_id = ? AND currency = ?", userID, "USD").First(&wallet).Error; err != nil {
 		return nil, err
 	}
-
-	referral := ReferralBonus{
-		ID:              uuid.New(),
-		ReferrerID:      referrerID,
-		RefereeID:      refereeID,
-		CommissionPercent: bonus / deposit * 100,
-		TotalEarned:    bonus,
-		RefereeDeposited: deposit,
+	
+	tx := s.db.Begin()
+	
+	wallet.Balance += bonusAmount
+	if err := tx.Save(&wallet).Error; err != nil {
+		tx.Rollback()
+		return 0, err
 	}
-
-	if err := s.db.Create(&referral).Error; err != nil {
-		return nil, err
+	
+	// Create bonus tracking record
+	bonusClaim := models.BonusClaim{
+		ID:            uuid.New(),
+		UserID:        userID,
+		BonusType:     "welcome",
+		Amount:        bonusAmount,
+		WagerRequired: wagerReq,
+		Wagered:       0,
+		Status:        "active",
+		CreatedAt:     time.Now(),
+		ExpiresAt:     time.Now().Add(30 * 24 * time.Hour),
 	}
-
-	// Credit referrer
-	userService := NewUserService(s.db)
-	userService.UpdateBalance(referrerID, bonus)
-
-	// Add VIP points to both
-	s.AddVIPPoints(referrerID, bonus, "referral", referral.ID.String())
-	s.AddVIPPoints(refereeID, bonus/2, "referral", referral.ID.String())
-
-	return &referral, nil
-}
-
-// GetReferralStats returns referral statistics for a user
-func (s *VIPService) GetReferralStats(userID uuid.UUID) (map[string]interface{}, error) {
-	var referrals []ReferralBonus
-	s.db.Where("referrer_id = ?", userID).Find(&referrals)
-
-	totalEarned := 0.0
-	activeReferees := 0
-
-	for _, r := range referrals {
-		totalEarned += r.TotalEarned
-		if r.Status == "active" {
-			activeReferees++
-		}
+	
+	if err := tx.Create(&bonusClaim).Error; err != nil {
+		tx.Rollback()
+		return 0, err
 	}
-
-	return map[string]interface{}{
-		"total_referrals":   len(referrals),
-		"active_referees": activeReferees,
-		"total_earned":    totalEarned,
-		"referrals":       referrals,
+	
+	tx.Commit()
+	
+	return &BonusResult{
+		BonusID:      bonusClaim.ID,
+		Amount:       bonusAmount,
+		WagerReq:     wagerReq,
+		ExpiresAt:    bonusClaim.ExpiresAt,
 	}, nil
 }
+
+type BonusResult struct {
+	BonusID     uuid.UUID
+	Amount      float64
+	WagerReq    float64
+	ExpiresAt   time.Time
+}
+
+// ClaimDepositBonus claims a deposit bonus
+func (s *VIPService) ClaimDepositBonus(ctx context.Context, userID uuid.UUID, depositAmount float64) (*BonusResult, error) {
+	bonusAmount := depositAmount * (s.config.DepositBonusPercent / 100)
+	if bonusAmount > s.config.DepositBonusMax {
+		bonusAmount = s.config.DepositBonusMax
+	}
+	
+	wagerReq := bonusAmount * 5 // 5x wager requirement for deposit bonus
+	
+	// Credit bonus
+	var wallet models.Wallet
+	if err := s.db.Where("user_id = ? AND currency = ?", userID, "USD").First(&wallet).Error; err != nil {
+		return nil, err
+	}
+	
+	tx := s.db.Begin()
+	
+	wallet.Balance += bonusAmount
+	if err := tx.Save(&wallet).Error; err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+	
+	// Create bonus tracking record
+	bonusClaim := models.BonusClaim{
+		ID:            uuid.New(),
+		UserID:        userID,
+		BonusType:     "deposit",
+		Amount:        bonusAmount,
+		WagerRequired: wagerReq,
+		Wagered:       0,
+		Status:        "active",
+		CreatedAt:     time.Now(),
+		ExpiresAt:     time.Now().Add(7 * 24 * time.Hour),
+	}
+	
+	if err := tx.Create(&bonusClaim).Error; err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+	
+	tx.Commit()
+	
+	return &BonusResult{
+		BonusID:   bonusClaim.ID,
+		Amount:    bonusAmount,
+		WagerReq:  wagerReq,
+		ExpiresAt: bonusClaim.ExpiresAt,
+	}, nil
+}
+
+// ProcessWagerProgress updates wager progress for a bonus
+func (s *VIPService) ProcessWagerProgress(ctx context.Context, userID uuid.UUID, betAmount float64) error {
+	// Find active bonuses
+	var activeBonuses []models.BonusClaim
+	s.db.Where("user_id = ? AND status = ? AND expires_at > ?", userID, "active", time.Now()).
+		Find(&activeBonuses)
+	
+	if len(activeBonuses) == 0 {
+		return nil
+	}
+	
+	tx := s.db.Begin()
+	
+	for i := range activeBonuses {
+		bonus := &activeBonuses[i]
+		
+		// Add wager progress
+		bonus.Wagered += betAmount
+		
+		// Check if wager requirement met
+		if bonus.Wagered >= bonus.WagerRequired {
+			bonus.Status = "completed"
+			bonus.CompletedAt = time.Now()
+		}
+		
+		if err := tx.Save(bonus).Error; err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+	
+	return tx.Commit().Error
+}
+
+// ============ CASHBACK SYSTEM ============
+
+// ProcessDailyCashback processes daily cashback for all users
+func (s *VIPService) ProcessDailyCashback(ctx context.Context) error {
+	if s.config.DailyCashbackPercent <= 0 {
+		return nil
+	}
+	
+	return s.processCashback(ctx, "daily")
+}
+
+// ProcessWeeklyCashback processes weekly cashback
+func (s *VIPService) ProcessWeeklyCashback(ctx context.Context) error {
+	if s.config.WeeklyCashbackPercent <= 0 {
+		return nil
+	}
+	
+	return s.processCashback(ctx, "weekly")
+}
+
+func (s *VIPService) processCashback(ctx context.Context, period string) error {
+	// Get all users who made activity in the period
+	var users []models.User
+	s.db.Find(&users)
+	
+	percentMap := map[string]float64{
+		"daily":   s.config.DailyCashbackPercent,
+		"weekly":  s.config.WeeklyCashbackPercent,
+		"monthly": s.config.MonthlyCashbackPercent,
+	}
+	
+	percent := percentMap[period]
+	if percent <= 0 {
+		return nil
+	}
+	
+	for _, user := range users {
+		// Calculate net loss for period
+		var totalWagered, totalWon float64
+		
+		since := time.Now().AddDate(0, 0, -1)
+		if period == "weekly" {
+			since = time.Now().AddDate(0, 0, -7)
+		} else if period == "monthly" {
+			since = time.Now().AddDate(0, -1, 0)
+		}
+		
+		s.db.Model(&models.GameHistory{}).
+			Where("user_id = ? AND timestamp > ?", user.ID, since).
+			Select("COALESCE(SUM(bet_amount), 0)", "COALESCE(SUM(win_amount), 0)").
+			Scan(&totalWagered, &totalWon)
+		
+		netLoss := totalWagered - totalWon
+		if netLoss <= 0 {
+			continue // No loss, no cashback
+		}
+		
+		// Get user's cashback percentage based on level
+		status, err := s.GetUserVIPStatus(ctx, user.ID)
+		if err != nil {
+			continue
+		}
+		
+		cashbackPercent := percent
+		if status.Benefits != nil && status.Benefits.CashbackPercent > 0 {
+			cashbackPercent = status.Benefits.CashbackPercent
+		}
+		
+		cashbackAmount := netLoss * (cashbackPercent / 100)
+		
+		// Credit cashback
+		var wallet models.Wallet
+		if err := s.db.Where("user_id = ? AND currency = ?", user.ID, "USD").First(&wallet).Error; err != nil {
+			continue
+		}
+		
+		wallet.Balance += cashbackAmount
+		wallet.UpdatedAt = time.Now()
+		s.db.Save(&wallet)
+		
+		// Create cashback record
+		cashback := models.CashbackRecord{
+			ID:        uuid.New(),
+			UserID:    user.ID,
+			Period:    period,
+			NetLoss:   netLoss,
+			Percent:   cashbackPercent,
+			Amount:    cashbackAmount,
+			CreatedAt: time.Now(),
+		}
+		s.db.Create(&cashback)
+	}
+	
+	return nil
+}
+
+// ============ LEADERBOARD ============
+
+// GetLeaderboard returns top users by wager volume
+func (s *VIPService) GetLeaderboard(ctx context.Context, period string, limit int) ([]LeaderboardEntry, error) {
+	var since time.Time
+	now := time.Now()
+	
+	switch period {
+	case "daily":
+		since = time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+	case "weekly":
+		weekday := int(now.Weekday())
+		if weekday == 0 {
+			weekday = 7
+		}
+		since = now.AddDate(0, 0, -(weekday - 1))
+		since = time.Date(since.Year(), since.Month(), since.Day(), 0, 0, 0, 0, since.Location())
+	case "monthly":
+		since = time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
+	case "all":
+		since = time.Date(2000, 1, 1, 0, 0, 0, 0, now.Location())
+	default:
+		since = time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+	}
+	
+	type leaderboardRow struct {
+		UserID      uuid.UUID
+		Username    string
+		TotalWager  float64
+		TotalWins   float64
+		BetCount    int64
+	}
+	
+	var rows []leaderboardRow
+	
+	s.db.Model(&models.GameHistory{}).
+		Select("user_id, SUM(bet_amount) as total_wager, SUM(win_amount) as total_wins, COUNT(*) as bet_count").
+		Where("timestamp > ?", since).
+		Group("user_id").
+		Order("total_wager DESC").
+		Limit(limit).
+		Scan(&rows)
+	
+	entries := make([]LeaderboardEntry, len(rows))
+	
+	for i, row := range rows {
+		var user models.User
+		s.db.First(&user, row.UserID)
+		
+		entries[i] = LeaderboardEntry{
+			Rank:        i + 1,
+			UserID:      row.UserID,
+			Username:    user.Username,
+			TotalWager:  row.TotalWager,
+			TotalWins:   row.TotalWins,
+			NetProfit:   row.TotalWins - row.TotalWager,
+			BetCount:    row.BetCount,
+		}
+	}
+	
+	return entries, nil
+}
+
+type LeaderboardEntry struct {
+	Rank       int
+	UserID     uuid.UUID
+	Username   string
+	TotalWager float64
+	TotalWins  float64
+	NetProfit  float64
+	BetCount   int64
+}
+
+// ============ PROMOTIONS ============
+
+// GetActivePromotions returns currently active promotions
+func (s *VIPService) GetActivePromotions(ctx context.Context) ([]Promotion, error) {
+	var promotions []models.Promotion
+	s.db.Where("status = ? AND start_date <= ? AND end_date >= ?", "active", time.Now(), time.Now()).
+		Find(&promotions)
+	
+	result := make([]Promotion, len(promotions))
+	for i, p := range promotions {
+		result[i] = Promotion{
+			ID:          p.ID,
+			Name:        p.Name,
+			Description: p.Description,
+			Type:        p.Type,
+			BonusAmount: p.BonusAmount,
+			WagerReq:    p.WagerReq,
+			StartDate:   p.StartDate,
+			EndDate:    p.EndDate,
+			Terms:       p.Terms,
+		}
+	}
+	
+	return result, nil
+}
+
+type Promotion struct {
+	ID          uuid.UUID
+	Name        string
+	Description string
+	Type        string
+	BonusAmount float64
+	WagerReq    float64
+	StartDate   time.Time
+	EndDate     time.Time
+	Terms       string
+}
+
+// ============ LEVEL UP BONUS ============
+
+// ProcessLevelUp processes level up rewards
+func (s *VIPService) ProcessLevelUp(ctx context.Context, userID uuid.UUID, oldLevel, newLevel int) error {
+	if newLevel <= oldLevel {
+		return nil
+	}
+	
+	// Calculate level up bonus
+	levelBonus := float64(newLevel-oldLevel) * 50 // $50 per level
+	
+	// Credit bonus
+	var wallet models.Wallet
+	if err := s.db.Where("user_id = ? AND currency = ?", userID, "USD").First(&wallet).Error; err != nil {
+		return err
+	}
+	
+	tx := s.db.Begin()
+	
+	wallet.Balance += levelBonus
+	if err := tx.Save(&wallet).Error; err != nil {
+		tx.Rollback()
+		return err
+	}
+	
+	// Create level up record
+	levelUp := models.LevelUpReward{
+		ID:        uuid.New(),
+		UserID:    userID,
+		OldLevel:  oldLevel,
+		NewLevel:  newLevel,
+		Bonus:     levelBonus,
+		CreatedAt: time.Now(),
+	}
+	
+	if err := tx.Create(&levelUp).Error; err != nil {
+		tx.Rollback()
+		return err
+	}
+	
+	return tx.Commit().Error
+}
+
+// ============ VIP STATUS SUMMARY ============
+
+// GetAllVIPLevels returns all VIP levels with their benefits
+func (s *VIPService) GetAllVIPLevels(ctx context.Context) []VIPLevelInfo {
+	levels := make([]VIPLevelInfo, 6)
+	
+	for i := 0; i <= 5; i++ {
+		level := s.levels[i]
+		benefits := s.config.LevelBenefits[i]
+		
+		levels[i] = VIPLevelInfo{
+			Level:           i,
+			Name:             level.Name,
+			MinWagered:       s.config.LevelThresholds[i],
+			RakebackPercent:  level.RakebackPercent,
+			WeeklyCashback:   level.WeeklyCashback,
+			MonthlyCashback:  level.MonthlyCashback,
+			Benefits:         benefits,
+		}
+	}
+	
+	return levels
+}
+
+type VIPLevelInfo struct {
+	Level           int
+	Name            string
+	MinWagered      float64
+	RakebackPercent float64
+	WeeklyCashback  float64
+	MonthlyCashback float64
+	Benefits        *LevelBenefits
+}
+
+// ============ REFERENCES TO EXISTING MODELS ============
+
+// Ensure models exist - these are references to models in models package
+var _ = func() {}(
+	models.User{},
+	models.GameHistory{},
+	models.Wallet{},
+	models.RakebackBalance{},
+	models.LoyaltyPoints{},
+	models.BonusClaim{},
+	models.CashbackRecord{},
+	models.LevelUpReward{},
+	models.Promotion{},
+)
