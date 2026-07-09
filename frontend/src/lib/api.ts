@@ -183,4 +183,306 @@ class ApiClient {
   }
 }
 
+// ============ Sportsbook Endpoints ============
+
+// Sports types
+interface Sport {
+  id: string;
+  name: string;
+  icon: string;
+  leagues: number;
+  matches: number;
+  isLive: boolean;
+}
+
+interface League {
+  id: string;
+  sportId: string;
+  name: string;
+  country: string;
+  logo: string;
+  isLive: boolean;
+}
+
+interface Match {
+  id: string;
+  sport: string;
+  league: string;
+  homeTeam: string;
+  awayTeam: string;
+  homeScore: number;
+  awayScore: number;
+  startTime: string;
+  status: string;
+  homeOdds: number;
+  drawOdds: number;
+  awayOdds: number;
+}
+
+interface SportsBet {
+  id: string;
+  matchId: string;
+  betType: string;
+  stake: number;
+  odds: number;
+  potentialWin: number;
+  result: string;
+  payout: number;
+}
+
+// Esports types
+interface EsportsMatch {
+  id: string;
+  game: string;
+  homeTeam: string;
+  awayTeam: string;
+  homeScore: number;
+  awayScore: number;
+  homeOdds: number;
+  awayOdds: number;
+  map: string;
+  status: string;
+  startTime: string;
+  tournament: string;
+}
+
+// Tournament types
+interface Tournament {
+  id: string;
+  game: string;
+  name: string;
+  prize: string;
+  teams: number;
+  status: string;
+}
+
+// Extend ApiClient with sportsbook methods
+class ApiClient {
+  // ... existing code ...
+
+  // Get available sports
+  async getSports(): Promise<ApiResponse<Sport[]>> {
+    return this.request('/api/sportsbook/sports');
+  }
+
+  // Get leagues for a sport
+  async getLeagues(sportId: string): Promise<ApiResponse<League[]>> {
+    return this.request(`/api/sportsbook/leagues?sport=${sportId}`);
+  }
+
+  // Get matches
+  async getMatches(sport?: string, league?: string): Promise<ApiResponse<Match[]>> {
+    const params = new URLSearchParams();
+    if (sport) params.append('sport', sport);
+    if (league) params.append('league', league);
+    return this.request(`/api/sportsbook/matches?${params.toString()}`);
+  }
+
+  // Get live matches
+  async getLiveMatches(): Promise<ApiResponse<Match[]>> {
+    return this.request('/api/sportsbook/live');
+  }
+
+  // Get match odds
+  async getMatchOdds(matchId: string): Promise<ApiResponse<Match>> {
+    return this.request(`/api/sportsbook/odds/${matchId}`);
+  }
+
+  // Place sports bet
+  async placeSportsBet(matchId: string, betType: string, stake: number): Promise<ApiResponse<SportsBet>> {
+    return this.request('/api/sportsbook/bet', {
+      method: 'POST',
+      body: JSON.stringify({ match_id: matchId, bet_type: betType, stake }),
+    });
+  }
+
+  // Get user sports bets
+  async getSportsBets(limit = 20): Promise<ApiResponse<SportsBet[]>> {
+    return this.request(`/api/sportsbook/bets?limit=${limit}`);
+  }
+
+  // Get esports matches
+  async getEsportsMatches(): Promise<ApiResponse<EsportsMatch[]>> {
+    return this.request('/api/sportsbook/esports');
+  }
+
+  // Get esports tournaments
+  async getEsportsTournaments(): Promise<ApiResponse<Tournament[]>> {
+    return this.request('/api/sportsbook/esports/tournaments');
+  }
+
+  // ============ Affiliate Endpoints ============
+
+  // Get affiliate info
+  async getAffiliateInfo(): Promise<ApiResponse<any>> {
+    return this.request('/api/affiliate/info');
+  }
+
+  // Get affiliate stats
+  async getAffiliateStats(): Promise<ApiResponse<any>> {
+    return this.request('/api/affiliate/stats');
+  }
+
+  // Get affiliate link clicks
+  async getAffiliateClicks(): Promise<ApiResponse<any>> {
+    return this.request('/api/affiliate/clicks');
+  }
+
+  // Get affiliate commissions
+  async getAffiliateCommissions(): Promise<ApiResponse<any>> {
+    return this.request('/api/affiliate/commissions');
+  }
+
+  // Get affiliate leaderboard
+  async getAffiliateLeaderboard(limit = 10): Promise<ApiResponse<any>> {
+    return this.request(`/api/affiliate/leaderboard?limit=${limit}`);
+  }
+
+  // Generate affiliate link
+  async generateAffiliateLink(): Promise<ApiResponse<{ link: string }>> {
+    return this.request('/api/affiliate/link', { method: 'POST' });
+  }
+
+  // ============ Tournament Endpoints ============
+
+  // Get active tournaments
+  async getTournaments(): Promise<ApiResponse<any[]>> {
+    return this.request('/api/tournaments');
+  }
+
+  // Get tournament details
+  async getTournament(id: string): Promise<ApiResponse<any>> {
+    return this.request(`/api/tournaments/${id}`);
+  }
+
+  // Join tournament
+  async joinTournament(id: string): Promise<ApiResponse<any>> {
+    return this.request(`/api/tournaments/${id}/join`, { method: 'POST' });
+  }
+
+  // Get tournament leaderboard
+  async getTournamentLeaderboard(id: string): Promise<ApiResponse<any[]>> {
+    return this.request(`/api/tournaments/${id}/leaderboard`);
+  }
+
+  // ============ VIP Endpoints ============
+
+  // Get VIP info
+  async getVIPInfo(): Promise<ApiResponse<any>> {
+    return this.request('/api/vip/info');
+  }
+
+  // Get VIP benefits
+  async getVIPBenefits(): Promise<ApiResponse<any[]>> {
+    return this.request('/api/vip/benefits');
+  }
+
+  // Get VIP progress
+  async getVIPProgress(): Promise<ApiResponse<any>> {
+    return this.request('/api/vip/progress');
+  }
+
+  // ============ WebSocket Connection ============
+
+  private ws: WebSocket | null = null;
+  private wsCallbacks: Map<string, (data: any) => void> = new Map();
+
+  // Connect to WebSocket
+  connectWebSocket(onMessage: (data: any) => void): void {
+    const wsUrl = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8080/ws';
+    this.ws = new WebSocket(wsUrl);
+
+    this.ws.onopen = () => {
+      console.log('WebSocket connected');
+    };
+
+    this.ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        onMessage(data);
+        
+        // Handle specific message types
+        if (data.type && this.wsCallbacks.has(data.type)) {
+          this.wsCallbacks.get(data.type)?.(data.payload);
+        }
+      } catch (e) {
+        console.error('WebSocket message parse error:', e);
+      }
+    };
+
+    this.ws.onclose = () => {
+      console.log('WebSocket disconnected');
+      // Reconnect after 5 seconds
+      setTimeout(() => this.connectWebSocket(onMessage), 5000);
+    };
+
+    this.ws.onerror = (error) => {
+      console.error('WebSocket error:', error);
+    };
+  }
+
+  // Subscribe to WebSocket events
+  subscribeToWS(type: string, callback: (data: any) => void): void {
+    this.wsCallbacks.set(type, callback);
+    
+    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+      this.ws.send(JSON.stringify({ action: 'subscribe', type }));
+    }
+  }
+
+  // Send WebSocket message
+  sendWSMessage(type: string, payload: any): void {
+    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+      this.ws.send(JSON.stringify({ type, payload }));
+    }
+  }
+
+  // Disconnect WebSocket
+  disconnectWebSocket(): void {
+    if (this.ws) {
+      this.ws.close();
+      this.ws = null;
+    }
+  }
+
+  // ============ Real-time Game Updates ============
+
+  // Subscribe to game updates
+  subscribeToGame(gameId: string): void {
+    this.sendWSMessage('subscribe_game', { game_id: gameId });
+  }
+
+  // Unsubscribe from game updates
+  unsubscribeFromGame(gameId: string): void {
+    this.sendWSMessage('unsubscribe_game', { game_id: gameId });
+  }
+
+  // Subscribe to match updates (sportsbook)
+  subscribeToMatch(matchId: string): void {
+    this.sendWSMessage('subscribe_match', { match_id: matchId });
+  }
+
+  // Subscribe to live scores
+  subscribeToLiveScores(): void {
+    this.sendWSMessage('subscribe_live_scores', {});
+  }
+
+  // ============ Chat ============
+
+  // Join chat room
+  joinChatRoom(roomId: string): void {
+    this.sendWSMessage('join_room', { room_id: roomId });
+  }
+
+  // Leave chat room
+  leaveChatRoom(roomId: string): void {
+    this.sendWSMessage('leave_room', { room_id: roomId });
+  }
+
+  // Send chat message
+  sendChatMessage(roomId: string, message: string): void {
+    this.sendWSMessage('chat_message', { room_id: roomId, message });
+  }
+}
+
 export const api = new ApiClient();
