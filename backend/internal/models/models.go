@@ -242,3 +242,186 @@ type Session struct {
 	ExpiresAt time.Time `gorm:"not null" json:"expires_at"`
 	CreatedAt time.Time `gorm:"default:CURRENT_TIMESTAMP" json:"created_at"`
 }
+
+// ============ VIP & LOYALTY MODELS ============
+
+// RakebackBalance represents user's rakeback balance
+type RakebackBalance struct {
+	ID          uuid.UUID  `gorm:"type:uuid;primary_key" json:"id"`
+	UserID      uuid.UUID  `gorm:"type:uuid;not null;index" json:"user_id"`
+	Amount      float64   `gorm:"not null" json:"amount"`
+	Available   float64   `gorm:"not null" json:"available"`
+	Locked      float64   `gorm:"default:0" json:"locked"`
+	Source      string    `json:"source"`
+	ExternalRef string    `json:"external_ref"`
+	CreatedAt   time.Time `gorm:"default:CURRENT_TIMESTAMP" json:"created_at"`
+	ExpiresAt   time.Time `json:"expires_at"`
+}
+
+// LoyaltyPoints represents user's loyalty points
+type LoyaltyPoints struct {
+	ID        uuid.UUID  `gorm:"type:uuid;primary_key" json:"id"`
+	UserID    uuid.UUID  `gorm:"type:uuid;not null;index" json:"user_id"`
+	Points    int64     `gorm:"not null" json:"points"`
+	Source    string    `json:"source"` // rakeback, bonus, promotion
+	CreatedAt time.Time `gorm:"default:CURRENT_TIMESTAMP" json:"created_at"`
+}
+
+// BonusClaim represents a claimed bonus
+type BonusClaim struct {
+	ID            uuid.UUID  `gorm:"type:uuid;primary_key" json:"id"`
+	UserID        uuid.UUID  `gorm:"type:uuid;not null;index" json:"user_id"`
+	BonusType     string    `gorm:"not null" json:"bonus_type"` // welcome, deposit, cashback, free_spins, loyalty
+	Amount        float64   `gorm:"not null" json:"amount"`
+	WagerRequired float64   `gorm:"not null" json:"wager_required"`
+	Wagered       float64   `gorm:"default:0" json:"wagered"`
+	Status        string    `gorm:"default:'active'" json:"status"` // active, completed, expired, cancelled
+	CreatedAt     time.Time `gorm:"default:CURRENT_TIMESTAMP" json:"created_at"`
+	CompletedAt   *time.Time `json:"completed_at,omitempty"`
+	ExpiresAt     time.Time `json:"expires_at"`
+}
+
+// CashbackRecord represents a cashback award
+type CashbackRecord struct {
+	ID        uuid.UUID  `gorm:"type:uuid;primary_key" json:"id"`
+	UserID    uuid.UUID  `gorm:"type:uuid;not null;index" json:"user_id"`
+	Period    string    `gorm:"not null" json:"period"` // daily, weekly, monthly
+	NetLoss   float64   `gorm:"not null" json:"net_loss"`
+	Percent   float64   `gorm:"not null" json:"percent"`
+	Amount    float64   `gorm:"not null" json:"amount"`
+	CreatedAt time.Time `gorm:"default:CURRENT_TIMESTAMP" json:"created_at"`
+}
+
+// LevelUpReward represents a level up reward
+type LevelUpReward struct {
+	ID        uuid.UUID  `gorm:"type:uuid;primary_key" json:"id"`
+	UserID    uuid.UUID  `gorm:"type:uuid;not null;index" json:"user_id"`
+	OldLevel  int       `gorm:"not null" json:"old_level"`
+	NewLevel  int       `gorm:"not null" json:"new_level"`
+	Bonus     float64   `gorm:"not null" json:"bonus"`
+	CreatedAt time.Time `gorm:"default:CURRENT_TIMESTAMP" json:"created_at"`
+}
+
+// Promotion represents an active promotion
+type Promotion struct {
+	ID          uuid.UUID  `gorm:"type:uuid;primary_key" json:"id"`
+	Name        string    `gorm:"not null" json:"name"`
+	Description string    `json:"description"`
+	Type        string    `gorm:"not null" json:"type"` // bonus, tournament, cashback, free_spins
+	BonusAmount float64   `json:"bonus_amount"`
+	WagerReq    float64   `json:"wager_req"`
+	StartDate  time.Time `gorm:"not null" json:"start_date"`
+	EndDate    time.Time `gorm:"not null" json:"end_date"`
+	Status     string    `gorm:"default:'active'" json:"status"` // active, scheduled, expired
+	Terms      string    `gorm:"type:text" json:"terms"`
+	CreatedAt  time.Time `gorm:"default:CURRENT_TIMESTAMP" json:"created_at"`
+}
+
+// ============ TOURNAMENT MODELS ============
+
+// Tournament represents a casino tournament
+type Tournament struct {
+	ID               uuid.UUID  `gorm:"type:uuid;primary_key" json:"id"`
+	Name             string    `gorm:"not null" json:"name"`
+	Description      string    `json:"description"`
+	Type             string    `gorm:"not null" json:"type"` // slots, table_games, live_casino, all_games, sports
+	Status           string    `gorm:"default:'upcoming'" json:"status"` // upcoming, registration, active, completed, cancelled
+	GameFilter      string    `json:"game_filter"` // comma-separated game IDs or categories
+	MinBet          float64   `json:"min_bet"`
+	StartTime       time.Time `gorm:"not null" json:"start_time"`
+	EndTime         time.Time `gorm:"not null" json:"end_time"`
+	RegistrationEnd time.Time `json:"registration_end"`
+	PrizePool       float64   `gorm:"not null" json:"prize_pool"`
+	Currency        string    `gorm:"default:'USD'" json:"currency"`
+	ScoringType     string    `gorm:"default:'wager'" json:"scoring_type"` // wager, wins, profit
+	PointsMultiplier float64  `gorm:"default:1" json:"points_multiplier"`
+	MinWagerToQualify float64 `json:"min_wager_to_qualify"`
+	CreatedAt       time.Time `gorm:"default:CURRENT_TIMESTAMP" json:"created_at"`
+}
+
+// TournamentParticipant represents a user in a tournament
+type TournamentParticipant struct {
+	ID             uuid.UUID  `gorm:"type:uuid;primary_key" json:"id"`
+	TournamentID   uuid.UUID  `gorm:"type:uuid;not null;index" json:"tournament_id"`
+	UserID         uuid.UUID  `gorm:"type:uuid;not null;index" json:"user_id"`
+	JoinedAt       time.Time  `gorm:"default:CURRENT_TIMESTAMP" json:"joined_at"`
+	Score          float64    `gorm:"default:0" json:"score"`
+	Wagered        float64    `gorm:"default:0" json:"wagered"`
+	Wins           int        `gorm:"default:0" json:"wins"`
+	CurrentStreak int        `gorm:"default:0" json:"current_streak"`
+	BestStreak    int        `gorm:"default:0" json:"best_streak"`
+}
+
+// TournamentPrize represents a prize won in a tournament
+type TournamentPrize struct {
+	ID           uuid.UUID  `gorm:"type:uuid;primary_key" json:"id"`
+	TournamentID uuid.UUID  `gorm:"type:uuid;not null;index" json:"tournament_id"`
+	UserID       uuid.UUID  `gorm:"type:uuid;not null;index" json:"user_id"`
+	Position     int        `gorm:"not null" json:"position"`
+	PrizeAmount float64    `gorm:"not null" json:"prize_amount"`
+	Currency     string     `gorm:"default:'USD'" json:"currency"`
+	CreatedAt    time.Time  `gorm:"default:CURRENT_TIMESTAMP" json:"created_at"`
+}
+
+// ============ GAME AGGREGATOR MODELS ============
+
+// GameProvider represents a game provider
+type GameProvider struct {
+	ID          uuid.UUID  `gorm:"type:uuid;primary_key" json:"id"`
+	Name        string    `gorm:"not null;uniqueIndex" json:"name"`
+	Code        string    `gorm:"uniqueIndex" json:"code"`
+	Logo        string    `json:"logo"`
+	Website     string    `json:"website"`
+	Status      string    `gorm:"default:'active'" json:"status"` // active, inactive, maintenance
+	IsAggregator bool     `gorm:"default:false" json:"is_aggregator"`
+	GameCount  int       `gorm:"default:0" json:"game_count"`
+	CreatedAt  time.Time `gorm:"default:CURRENT_TIMESTAMP" json:"created_at"`
+}
+
+// SportsMarket represents a betting market
+type SportsMarket struct {
+	ID          uuid.UUID  `gorm:"type:uuid;primary_key" json:"id"`
+	EventID     string    `gorm:"not null;index" json:"event_id"`
+	Name        string    `gorm:"not null" json:"name"`
+	MarketType  string    `gorm:"not null" json:"market_type"` // moneyline, spread, over_under, etc.
+	Outcomes    string    `gorm:"type:jsonb" json:"outcomes"` // JSON array of outcomes
+	Suspended   bool      `gorm:"default:false" json:"suspended"`
+	Status      string    `gorm:"default:'active'" json:"status"`
+	CreatedAt   time.Time `gorm:"default:CURRENT_TIMESTAMP" json:"created_at"`
+	UpdatedAt   time.Time `gorm:"default:CURRENT_TIMESTAMP" json:"updated_at"`
+}
+
+// WalletAddress represents a user's wallet address
+type WalletAddress struct {
+	ID          uuid.UUID  `gorm:"type:uuid;primary_key" json:"id"`
+	UserID      uuid.UUID  `gorm:"type:uuid;not null;index" json:"user_id"`
+	Currency    string    `gorm:"not null" json:"currency"`
+	Network     string    `gorm:"not null" json:"network"`
+	Address     string    `gorm:"not null" json:"address"`
+	IsPrimary   bool      `gorm:"default:false" json:"is_primary"`
+	Status      string    `gorm:"default:'active'" json:"status"` // active, inactive
+	CreatedAt   time.Time `gorm:"default:CURRENT_TIMESTAMP" json:"created_at"`
+}
+
+// BalanceChange represents a balance change history
+type BalanceChange struct {
+	ID         uuid.UUID  `gorm:"type:uuid;primary_key" json:"id"`
+	UserID     uuid.UUID  `gorm:"type:uuid;not null;index" json:"user_id"`
+	Type       string    `gorm:"not null" json:"type"` // deposit, withdrawal, bet, win, bonus, rakeback, cashback
+	Currency   string    `gorm:"not null" json:"currency"`
+	Amount     float64   `gorm:"not null" json:"amount"`
+	Balance    float64   `gorm:"not null" json:"balance"`
+	Reference  string    `json:"reference"`
+	CreatedAt  time.Time `gorm:"default:CURRENT_TIMESTAMP" json:"created_at"`
+}
+
+// Notification represents a user notification
+type Notification struct {
+	ID        uuid.UUID  `gorm:"type:uuid;primary_key" json:"id"`
+	UserID    uuid.UUID  `gorm:"type:uuid;not null;index" json:"user_id"`
+	Type      string    `gorm:"not null" json:"type"` // info, bonus, tournament, withdrawal, deposit
+	Title     string    `gorm:"not null" json:"title"`
+	Message   string    `json:"message"`
+	Read      bool      `gorm:"default:false" json:"read"`
+	CreatedAt time.Time `gorm:"default:CURRENT_TIMESTAMP" json:"created_at"`
+}
